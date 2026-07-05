@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="1920" viewBox="0 0 480 1920">
+  <title>480x1920 hardware side screen prototype</title>
+  <defs>
+    <linearGradient id="pageBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F7FCF9"/>
+      <stop offset="0.46" stop-color="#EAF8F2"/>
+      <stop offset="1" stop-color="#F8FBFF"/>
+    </linearGradient>
+    <linearGradient id="panelBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.94"/>
+      <stop offset="1" stop-color="#ECFAF4" stop-opacity="0.88"/>
+    </linearGradient>
+    <linearGradient id="cpuFill" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#36D985"/>
+      <stop offset="1" stop-color="#24BFF3"/>
+    </linearGradient>
+    <linearGradient id="gpuFill" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#D94FC9"/>
+      <stop offset="1" stop-color="#24BFF3"/>
+    </linearGradient>
+    <linearGradient id="warnFill" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFB44D"/>
+      <stop offset="1" stop-color="#EF6B6B"/>
+    </linearGradient>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#75D7AE" flood-opacity="0.16"/>
+    </filter>
+    <style>
+      .bg { fill: url(#pageBg); }
+      .panel { fill: url(#panelBg); stroke: #9CE7C2; stroke-width: 1.4; filter: url(#softShadow); }
+      .panel-flat { fill: #F7FFFA; stroke: #A8E9CA; stroke-width: 1.2; }
+      .rule { stroke: #BDEFD8; stroke-width: 1; }
+      .hair { stroke: #CDEFE1; stroke-width: 0.8; }
+      .ink { fill: #16463A; font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif; }
+      .muted { fill: #5B8176; font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif; }
+      .mono { font-family: "Cascadia Mono", "Consolas", "Microsoft YaHei", monospace; }
+      .label { fill: #5B8176; font-family: "Cascadia Mono", "Consolas", "Microsoft YaHei", monospace; font-size: 12px; font-weight: 800; }
+      .chip { fill: #E4FAEF; stroke: #95E3BD; stroke-width: 1; }
+      .track { fill: #D9F5E7; }
+      .blue { fill: #1295C6; }
+      .green { fill: #23A86C; }
+      .pink { fill: #D13AB8; }
+      .amber { fill: #DA8B18; }
+      .red { fill: #D95656; }
+      .spark-cpu { fill: none; stroke: #22BFF3; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+      .spark-gpu { fill: none; stroke: #D94FC9; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+      .spark-soft { fill: none; stroke: #8CDFBE; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.65; }
+    </style>
+  </defs>
+
+  <rect width="480" height="1920" class="bg"/>
+  <path d="M18 0 V1920" stroke="#D9F5E7" stroke-width="1"/>
+  <path d="M462 0 V1920" stroke="#D9F5E7" stroke-width="1"/>
+
+  <!-- Top: date, time, weather, alert, foreground app -->
+  <g id="top-status">
+    <rect x="24" y="24" width="432" height="164" rx="8" class="panel"/>
+    <text x="44" y="63" class="label">DATE / WEATHER / FOCUS</text>
+    <text x="44" y="103" class="ink mono" font-size="25" font-weight="850">2026-07-05 周日</text>
+    <text x="44" y="144" class="ink mono" font-size="35" font-weight="900">17:02:35</text>
+    <text x="284" y="102" class="ink" font-size="22" font-weight="850">北京 31° 晴</text>
+    <text x="284" y="132" class="muted" font-size="14" font-weight="750">AQI 38 · 湿度 41%</text>
+    <rect x="264" y="150" width="74" height="24" rx="6" class="chip"/>
+    <text x="279" y="168" class="green" font-size="14" font-weight="850">正常</text>
+    <text x="354" y="168" class="muted mono" font-size="14" font-weight="800">game.exe</text>
+  </g>
+
+  <!-- CPU: model, usage, metrics, current progress, 60s history -->
+  <g id="cpu-card">
+    <rect x="24" y="206" width="432" height="246" rx="8" class="panel"/>
+    <text x="44" y="246" class="label">CPU PACKAGE</text>
+    <text x="44" y="274" class="ink" font-size="17" font-weight="850">AMD Ryzen 9 9950X3D</text>
+    <text x="44" y="352" class="ink mono" font-size="78" font-weight="950">32</text>
+    <text x="160" y="352" class="muted" font-size="34" font-weight="900">%</text>
+    <rect x="338" y="230" width="78" height="26" rx="6" class="chip"/>
+    <text x="359" y="249" class="green" font-size="14" font-weight="850">正常</text>
+
+    <text x="244" y="308" class="label">TEMP</text>
+    <text x="244" y="335" class="ink mono" font-size="24" font-weight="850">63°C</text>
+    <text x="348" y="308" class="label">POWER</text>
+    <text x="348" y="335" class="ink mono" font-size="24" font-weight="850">145W</text>
+    <text x="244" y="366" class="label">CLOCK</text>
+    <text x="244" y="393" class="ink mono" font-size="24" font-weight="850">5557M</text>
+    <text x="348" y="366" class="label">VCORE</text>
+    <text x="348" y="393" class="ink mono" font-size="24" font-weight="850">1.27V</text>
+
+    <rect x="44" y="385" width="170" height="11" rx="5.5" class="track"/>
+    <rect x="44" y="385" width="54" height="11" rx="5.5" fill="url(#cpuFill)"/>
+    <text x="44" y="434" class="label">60s</text>
+    <text x="389" y="434" class="label">now</text>
+    <path d="M86 428 C110 410, 139 431, 164 414 S213 406, 241 420 S292 435, 318 411 S370 423, 426 408" class="spark-cpu"/>
+    <path d="M86 442 C128 436, 160 445, 204 437 S286 445, 332 437 S392 445, 426 440" class="spark-soft"/>
+  </g>
+
+  <!-- GPU: model, usage, metrics, current progress, 60s history -->
+  <g id="gpu-card">
+    <rect x="24" y="468" width="432" height="246" rx="8" class="panel"/>
+    <text x="44" y="508" class="label">GPU CORE</text>
+    <text x="44" y="536" class="ink" font-size="17" font-weight="850">NVIDIA GeForce RTX 5090 D</text>
+    <text x="44" y="614" class="ink mono" font-size="78" font-weight="950">17</text>
+    <text x="160" y="614" class="muted" font-size="34" font-weight="900">%</text>
+    <rect x="338" y="492" width="78" height="26" rx="6" class="chip"/>
+    <text x="359" y="511" class="green" font-size="14" font-weight="850">正常</text>
+
+    <text x="244" y="570" class="label">TEMP</text>
+    <text x="244" y="597" class="ink mono" font-size="24" font-weight="850">54°C</text>
+    <text x="348" y="570" class="label">POWER</text>
+    <text x="348" y="597" class="ink mono" font-size="24" font-weight="850">154W</text>
+    <text x="244" y="628" class="label">CORE</text>
+    <text x="244" y="655" class="ink mono" font-size="24" font-weight="850">2835M</text>
+    <text x="348" y="628" class="label">VOLT</text>
+    <text x="348" y="655" class="ink mono" font-size="24" font-weight="850">1.00V</text>
+
+    <rect x="44" y="647" width="170" height="11" rx="5.5" class="track"/>
+    <rect x="44" y="647" width="29" height="11" rx="5.5" fill="url(#gpuFill)"/>
+    <text x="44" y="696" class="label">60s</text>
+    <text x="389" y="696" class="label">now</text>
+    <path d="M86 690 C116 671, 144 694, 174 677 S225 676, 252 690 S308 700, 338 672 S386 685, 426 666" class="spark-gpu"/>
+    <path d="M86 704 C121 698, 155 708, 198 699 S277 709, 322 700 S387 708, 426 704" class="spark-soft"/>
+  </g>
+
+  <!-- FPS and foreground game -->
+  <g id="fps-card">
+    <rect x="24" y="730" width="432" height="142" rx="8" class="panel-flat"/>
+    <text x="44" y="770" class="label">FPS / FRONT APP</text>
+    <text x="44" y="814" class="ink mono" font-size="45" font-weight="950">144</text>
+    <text x="136" y="811" class="muted" font-size="17" font-weight="850">FPS</text>
+    <line x1="198" y1="762" x2="198" y2="842" class="rule"/>
+    <text x="220" y="790" class="label">AVG</text>
+    <text x="220" y="824" class="ink mono" font-size="25" font-weight="850">141</text>
+    <text x="295" y="790" class="label">1% LOW</text>
+    <text x="295" y="824" class="ink mono" font-size="25" font-weight="850">118</text>
+    <text x="382" y="790" class="label">FRAME</text>
+    <text x="382" y="824" class="ink mono" font-size="25" font-weight="850">6.9</text>
+    <text x="44" y="852" class="muted" font-size="14" font-weight="750">前台 game.exe · PresentMon / RTSS</text>
+  </g>
+
+  <!-- Memory and VRAM -->
+  <g id="memory-card">
+    <rect x="24" y="888" width="432" height="166" rx="8" class="panel"/>
+    <text x="44" y="928" class="label">MEMORY / VRAM</text>
+    <text x="44" y="974" class="ink mono" font-size="28" font-weight="900">RAM</text>
+    <text x="120" y="974" class="green mono" font-size="28" font-weight="900">34%</text>
+    <text x="208" y="974" class="muted mono" font-size="17" font-weight="800">22.0 / 64G</text>
+    <rect x="44" y="991" width="372" height="10" rx="5" class="track"/>
+    <rect x="44" y="991" width="126" height="10" rx="5" fill="url(#cpuFill)"/>
+    <text x="44" y="1030" class="ink mono" font-size="28" font-weight="900">VRAM</text>
+    <text x="135" y="1030" class="pink mono" font-size="28" font-weight="900">14%</text>
+    <text x="230" y="1030" class="muted mono" font-size="17" font-weight="800">16401MHz</text>
+  </g>
+
+  <!-- Disks: all logical drives, hot plug aware -->
+  <g id="disk-card">
+    <rect x="24" y="1070" width="432" height="300" rx="8" class="panel-flat"/>
+    <text x="44" y="1110" class="label">DISKS / HOT PLUG AUTO</text>
+    <text x="44" y="1145" class="ink mono" font-size="16" font-weight="850">C: Win11</text>
+    <rect x="166" y="1134" width="170" height="9" rx="4.5" class="track"/><rect x="166" y="1134" width="74" height="9" rx="4.5" fill="#24BFF3"/><text x="356" y="1145" class="ink mono" font-size="16" font-weight="850">44%</text>
+    <text x="44" y="1176" class="ink mono" font-size="16" font-weight="850">D: game</text>
+    <rect x="166" y="1165" width="170" height="9" rx="4.5" class="track"/><rect x="166" y="1165" width="119" height="9" rx="4.5" fill="#36D985"/><text x="356" y="1176" class="ink mono" font-size="16" font-weight="850">70%</text>
+    <text x="44" y="1207" class="ink mono" font-size="16" font-weight="850">E: software</text>
+    <rect x="166" y="1196" width="170" height="9" rx="4.5" class="track"/><rect x="166" y="1196" width="59" height="9" rx="4.5" fill="#36D985"/><text x="356" y="1207" class="ink mono" font-size="16" font-weight="850">35%</text>
+    <text x="44" y="1238" class="ink mono" font-size="16" font-weight="850">F: RECOVER</text>
+    <rect x="166" y="1227" width="170" height="9" rx="4.5" class="track"/><rect x="166" y="1227" width="2" height="9" rx="4.5" fill="#FFB44D"/><text x="356" y="1238" class="ink mono" font-size="16" font-weight="850">0%</text>
+    <text x="44" y="1269" class="ink mono" font-size="16" font-weight="850">G: data</text>
+    <rect x="166" y="1258" width="170" height="9" rx="4.5" class="track"/><rect x="166" y="1258" width="108" height="9" rx="4.5" fill="#24BFF3"/><text x="356" y="1269" class="ink mono" font-size="16" font-weight="850">64%</text>
+    <text x="44" y="1300" class="ink mono" font-size="16" font-weight="850">H: 1871</text>
+    <rect x="166" y="1289" width="170" height="9" rx="4.5" class="track"/><rect x="166" y="1289" width="28" height="9" rx="4.5" fill="#D94FC9"/><text x="356" y="1300" class="ink mono" font-size="16" font-weight="850">17%</text>
+    <text x="44" y="1331" class="ink mono" font-size="16" font-weight="850">Z: RAMDISK</text>
+    <rect x="166" y="1320" width="170" height="9" rx="4.5" class="track"/><rect x="166" y="1320" width="5" height="9" rx="4.5" fill="#D94FC9"/><text x="356" y="1331" class="ink mono" font-size="16" font-weight="850">3%</text>
+    <text x="44" y="1352" class="muted" font-size="12" font-weight="750">显示全部盘符，U 盘插拔时自动刷新列表</text>
+  </g>
+
+  <!-- Network, separated from disks -->
+  <g id="network-card">
+    <rect x="24" y="1386" width="432" height="126" rx="8" class="panel"/>
+    <text x="44" y="1426" class="label">NETWORK</text>
+    <text x="44" y="1473" class="blue mono" font-size="29" font-weight="900">↓10KB/s</text>
+    <text x="190" y="1473" class="green mono" font-size="29" font-weight="900">↑22KB/s</text>
+    <text x="343" y="1461" class="label">PING</text>
+    <text x="343" y="1488" class="ink mono" font-size="24" font-weight="850">18ms</text>
+    <text x="44" y="1500" class="muted mono" font-size="13" font-weight="800">jitter 2ms · loss 0%</text>
+  </g>
+
+  <!-- Top applications: app name can wrap, each row has CPU GPU RAM -->
+  <g id="app-rank-card">
+    <rect x="24" y="1528" width="432" height="246" rx="8" class="panel-flat"/>
+    <text x="44" y="1568" class="label">TOP APPLICATIONS / CPU GPU RAM</text>
+    <text x="260" y="1602" class="label">CPU</text>
+    <text x="324" y="1602" class="label">GPU</text>
+    <text x="388" y="1602" class="label">RAM</text>
+    <text x="44" y="1630" class="ink mono" font-size="17" font-weight="850"><tspan x="44" dy="0">VeryLongGameName</tspan><tspan x="44" dy="21">-Shipping.exe</tspan></text>
+    <text x="260" y="1642" class="green mono" font-size="18" font-weight="850">18%</text>
+    <text x="324" y="1642" class="pink mono" font-size="18" font-weight="850">62%</text>
+    <text x="388" y="1642" class="blue mono" font-size="18" font-weight="850">3.1G</text>
+    <line x1="44" y1="1668" x2="416" y2="1668" class="hair"/>
+    <text x="44" y="1700" class="ink mono" font-size="17" font-weight="850">chrome.exe</text>
+    <text x="260" y="1700" class="green mono" font-size="18" font-weight="850">06%</text>
+    <text x="324" y="1700" class="pink mono" font-size="18" font-weight="850">03%</text>
+    <text x="388" y="1700" class="blue mono" font-size="18" font-weight="850">3.1G</text>
+    <line x1="44" y1="1724" x2="416" y2="1724" class="hair"/>
+    <text x="44" y="1739" class="ink mono" font-size="17" font-weight="850"><tspan x="44" dy="0">python.exe</tspan><tspan x="44" dy="21">metrics_agent</tspan></text>
+    <text x="260" y="1751" class="green mono" font-size="18" font-weight="850">02%</text>
+    <text x="324" y="1751" class="pink mono" font-size="18" font-weight="850">00%</text>
+    <text x="388" y="1751" class="blue mono" font-size="18" font-weight="850">0.4G</text>
+  </g>
+
+  <!-- System health and telemetry freshness -->
+  <g id="system-health-card">
+    <rect x="24" y="1790" width="432" height="98" rx="8" class="panel"/>
+    <text x="44" y="1826" class="label">SYSTEM HEALTH</text>
+    <text x="44" y="1858" class="ink" font-size="23" font-weight="900">告警状态：正常</text>
+    <text x="44" y="1881" class="muted mono" font-size="15" font-weight="800">DPC 430us · 硬缺页 0/s · 更新 0.5s</text>
+  </g>
+</svg>

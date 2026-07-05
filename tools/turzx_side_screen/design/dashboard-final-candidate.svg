@@ -1,0 +1,469 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 1920" width="480" height="1920">
+  <defs>
+    <!-- 优化后纯净柔和的浅色渐变背景（移除了会产生噪点的微小点阵） -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f4faf7" />
+      <stop offset="50%" stop-color="#edf6f2" />
+      <stop offset="100%" stop-color="#e3f2ec" />
+    </linearGradient>
+
+    <!-- 硬件专属色彩渐变 -->
+    <linearGradient id="cpu-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+
+    <linearGradient id="gpu-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#db2777" />
+      <stop offset="100%" stop-color="#f472b6" />
+    </linearGradient>
+
+    <linearGradient id="net-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#34d399" />
+    </linearGradient>
+
+    <linearGradient id="disk-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#15803d" />
+      <stop offset="100%" stop-color="#52b788" />
+    </linearGradient>
+
+    <!-- 历史曲线阴影渐变 -->
+    <linearGradient id="cpu-curve-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0284c7" stop-opacity="0.10" />
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0.00" />
+    </linearGradient>
+
+    <linearGradient id="gpu-curve-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#db2777" stop-opacity="0.10" />
+      <stop offset="100%" stop-color="#db2777" stop-opacity="0.00" />
+    </linearGradient>
+
+    <!-- 克制的浅色卡片投影 -->
+    <filter id="mint-shadow" x="-8%" y="-8%" width="116%" height="116%">
+      <feDropShadow dx="0" dy="4" stdDeviation="10" flood-color="#022c1e" flood-opacity="0.04" />
+    </filter>
+  </defs>
+
+  <style>
+    .font-sans { font-family: 'Inter', -apple-system, 'Segoe UI', 'PingFang SC', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', 'Segoe UI Mono', monospace; font-variant-numeric: tabular-nums; }
+    
+    /* 克制的边框、阴影与留白 */
+    .card-bg { fill: #ffffff; rx: 14px; stroke: #c9dfd6; stroke-width: 1px; filter: url(#mint-shadow); }
+    .title-sec { font-size: 10px; font-weight: 800; fill: #15803d; letter-spacing: 1px; }
+    .mini-panel { fill: #f2faf6; stroke: #dbeef5; stroke-width: 0.8px; rx: 6px; }
+    
+    /* 核心文字样式 */
+    .text-val { font-size: 14px; font-weight: 700; fill: #044e37; }
+    .text-lbl { font-size: 9px; font-weight: 700; fill: #4a7c6c; letter-spacing: 0.5px; }
+    .text-unit { font-size: 11px; font-weight: 600; fill: #4a7c6c; }
+  </style>
+
+  <!-- 纯净无噪点背景 -->
+  <rect width="480" height="1920" fill="url(#bg-grad)" />
+
+  <!-- ================= CARD 1: 顶部状态栏 (Y: 16, H: 130) ================= -->
+  <g id="header-group" transform="translate(24, 16)">
+    <rect width="432" height="130" class="card-bg" />
+    
+    <!-- 日期与大时间 -->
+    <text x="24" y="44" class="font-sans" font-size="13" font-weight="600" fill="#4a7c6c" id="header-date">2026-07-05 周日</text>
+    <text x="22" y="86" class="font-mono" font-size="40" font-weight="800" fill="#044e37" id="header-time">17:02:35</text>
+    
+    <!-- 天气与环境指标 -->
+    <text x="408" y="44" text-anchor="end" class="font-sans" font-size="15" font-weight="700" fill="#044e37" id="header-weather">北京 31°C 晴</text>
+    <text x="408" y="68" text-anchor="end" class="font-sans" font-size="12" font-weight="500" fill="#4a7c6c" id="header-aqi">AQI 38 · 湿度 41%</text>
+
+    <!-- 底部状态条 (加粗、提高可读性) -->
+    <line x1="24" y1="102" x2="408" y2="102" stroke="#e6fcf4" stroke-width="1.2" />
+    <rect x="24" y="106" width="384" height="18" rx="4" fill="#dcfce7" />
+    <text x="216" y="119" text-anchor="middle" class="font-sans" font-size="12" font-weight="900" fill="#116631" id="header-status-strip">系统正常  ·  前台 game.exe  ·  更新 0.5s</text>
+  </g>
+
+  <!-- ================= CARD 2: CPU 处理器 (Y: 160, H: 280) ================= -->
+  <g id="cpu-group" transform="translate(24, 160)">
+    <rect width="432" height="280" class="card-bg" />
+    <rect x="0" y="0" width="4" height="280" rx="2" fill="#0284c7" />
+    
+    <text x="24" y="32" class="font-sans title-sec">CPU 处理器</text>
+    <text x="24" y="52" class="font-sans" font-size="14" font-weight="700" fill="#044e37" id="cpu-model">AMD Ryzen 9 9950X3D</text>
+
+    <!-- 使用率大数字 -->
+    <text x="24" y="124" class="font-mono" font-size="68" font-weight="800" fill="#0284c7" id="cpu-usage">32</text>
+    <text x="112" y="94" class="font-sans" font-size="20" font-weight="800" fill="#0284c7">%</text>
+    <text x="24" y="142" class="font-sans" font-size="9" font-weight="700" fill="#4a7c6c">CPU 使用率</text>
+
+    <!-- 参数网格 -->
+    <!-- 温度 -->
+    <g transform="translate(186, 74)">
+      <rect width="104" height="46" class="mini-panel" />
+      <text x="12" y="16" class="font-sans text-lbl">温度</text>
+      <text x="12" y="34" class="font-mono text-val" id="cpu-temp">63°C</text>
+    </g>
+    <!-- 功耗 -->
+    <g transform="translate(296, 74)">
+      <rect width="112" height="46" class="mini-panel" />
+      <text x="12" y="16" class="font-sans text-lbl">功耗</text>
+      <text x="12" y="34" class="font-mono text-val" id="cpu-power">145W</text>
+    </g>
+    <!-- 主频 -->
+    <g transform="translate(186, 126)">
+      <rect width="104" height="46" class="mini-panel" />
+      <text x="12" y="16" class="font-sans text-lbl">主频</text>
+      <text x="12" y="34" class="font-mono text-val" id="cpu-clock">5.56 GHz</text>
+    </g>
+    <!-- 核心电压 -->
+    <g transform="translate(296, 126)">
+      <rect width="112" height="46" class="mini-panel" />
+      <text x="12" y="16" class="font-sans text-lbl">核心电压</text>
+      <text x="12" y="34" class="font-mono text-val" id="cpu-vcore">1.27 V</text>
+    </g>
+
+    <!-- 负载进度条 -->
+    <text x="24" y="194" class="font-sans" font-size="9" font-weight="700" fill="#4a7c6c">当前负载</text>
+    <rect x="24" y="200" width="384" height="6" rx="3" fill="#f0fdf4" />
+    <rect x="24" y="200" width="123" height="6" rx="3" fill="url(#cpu-grad)" id="cpu-bar" />
+
+    <!-- 60秒曲线 (精致不贴边) -->
+    <text x="24" y="222" class="font-sans" font-size="9" font-weight="700" fill="#4a7c6c">近 60 秒负载历史</text>
+    <path d="M 24 252 Q 60 238 100 244 T 180 230 T 260 248 T 340 236 T 408 228 L 408 260 L 24 260 Z" fill="url(#cpu-curve-grad)" />
+    <path d="M 24 252 Q 60 238 100 244 T 180 230 T 260 248 T 340 236 T 408 228" fill="none" stroke="#0284c7" stroke-width="1.2" stroke-linecap="round" id="cpu-curve" />
+  </g>
+
+  <!-- ================= CARD 3: GPU 核心 (Y: 454, H: 280) ================= -->
+  <g id="gpu-group" transform="translate(24, 454)">
+    <rect width="432" height="280" class="card-bg" />
+    <rect x="0" y="0" width="4" height="280" rx="2" fill="#db2777" />
+    
+    <text x="24" y="32" class="font-sans title-sec">GPU 核心</text>
+    <text x="24" y="52" class="font-sans" font-size="14" font-weight="700" fill="#044e37" id="gpu-model">NVIDIA GeForce RTX 5090 D</text>
+
+    <!-- 使用率大数字 -->
+    <text x="24" y="124" class="font-mono" font-size="68" font-weight="800" fill="#db2777" id="gpu-usage">17</text>
+    <text x="112" y="94" class="font-sans" font-size="20" font-weight="800" fill="#db2777">%</text>
+    <text x="24" y="142" class="font-sans" font-size="9" font-weight="700" fill="#4a7c6c">GPU 使用率</text>
+
+    <!-- 参数网格 -->
+    <!-- 温度 -->
+    <g transform="translate(186, 74)">
+      <rect width="104" height="46" class="mini-panel" />
+      <text x="12" y="16" class="font-sans text-lbl">温度</text>
+      <text x="12" y="34" class="font-mono text-val" id="gpu-temp">54°C</text>
+    </g>
+    <!-- 功耗 -->
+    <g transform="translate(296, 74)">
+      <rect width="112" height="46" class="mini-panel" />
+      <text x="12" y="16" class="font-sans text-lbl">功耗</text>
+      <text x="12" y="34" class="font-mono text-val" id="gpu-power">154W</text>
+    </g>
+    <!-- 核心频率 -->
+    <g transform="translate(186, 126)">
+      <rect width="104" height="46" class="mini-panel" />
+      <text x="12" y="16" class="font-sans text-lbl">核心频率</text>
+      <text x="12" y="34" class="font-mono text-val" id="gpu-clock">2.84 GHz</text>
+    </g>
+    <!-- 核心电压 -->
+    <g transform="translate(296, 126)">
+      <rect width="112" height="46" class="mini-panel" />
+      <text x="12" y="16" class="font-sans text-lbl">电压</text>
+      <text x="12" y="34" class="font-mono text-val" id="gpu-volt">1.00 V</text>
+    </g>
+
+    <!-- 负载进度条 -->
+    <text x="24" y="194" class="font-sans" font-size="9" font-weight="700" fill="#4a7c6c">当前负载</text>
+    <rect x="24" y="200" width="384" height="6" rx="3" fill="#f0fdf4" />
+    <rect x="24" y="200" width="65" height="6" rx="3" fill="url(#gpu-grad)" id="gpu-bar" />
+
+    <!-- 60秒曲线 (精致不贴边) -->
+    <text x="24" y="222" class="font-sans" font-size="9" font-weight="700" fill="#4a7c6c">近 60 秒负载历史</text>
+    <path d="M 24 252 Q 60 258 100 236 T 180 250 T 260 240 T 340 254 T 408 244 L 408 260 L 24 260 Z" fill="url(#gpu-curve-grad)" />
+    <path d="M 24 252 Q 60 258 100 236 T 180 250 T 260 240 T 340 254 T 408 244" fill="none" stroke="#db2777" stroke-width="1.2" stroke-linecap="round" id="gpu-curve" />
+  </g>
+
+  <!-- ================= CARD 4: FPS / 帧率 (Y: 748, H: 130) ================= -->
+  <g id="fps-group" transform="translate(24, 748)">
+    <rect width="432" height="130" class="card-bg" />
+    <rect x="0" y="0" width="4" height="130" rx="2" fill="#059669" />
+    
+    <text x="24" y="28" class="font-sans title-sec">FPS / 帧率</text>
+    
+    <!-- 实时帧率 -->
+    <text x="24" y="86" class="font-mono" font-size="54" font-weight="800" fill="#044e37" id="fps-current">144</text>
+    <text x="124" y="78" class="font-sans" font-size="14" font-weight="700" fill="#4a7c6c">FPS</text>
+    
+    <!-- 性能网格 -->
+    <!-- 平均 -->
+    <g transform="translate(186, 44)">
+      <rect width="70" height="52" class="mini-panel" />
+      <text x="10" y="18" class="font-sans text-lbl">平均</text>
+      <text x="10" y="38" class="font-mono text-val" id="fps-avg">141</text>
+    </g>
+    <!-- 1% 低帧 -->
+    <g transform="translate(262, 44)">
+      <rect width="70" height="52" class="mini-panel" />
+      <text x="10" y="18" class="font-sans text-lbl" fill="#be185d">1% 低帧</text>
+      <text x="10" y="38" class="font-mono text-val" fill="#be185d" id="fps-low">118</text>
+    </g>
+    <!-- 帧时间 -->
+    <g transform="translate(338, 44)">
+      <rect width="70" height="52" class="mini-panel" />
+      <text x="10" y="18" class="font-sans text-lbl">帧生成</text>
+      <text x="10" y="38" class="font-mono" font-size="13" font-weight="700" fill="#044e37" id="fps-frametime">6.9 ms</text>
+    </g>
+
+    <line x1="24" y1="108" x2="408" y2="108" stroke="#e6fcf4" stroke-width="1.2" />
+    <text x="24" y="120" class="font-sans" font-size="9" font-weight="600" fill="#4a7c6c" id="fps-tool">数据来源: PresentMon / RTSS API</text>
+  </g>
+
+  <!-- ================= CARD 5: RAM & VRAM (Y: 892, H: 130) ================= -->
+  <g id="memory-group" transform="translate(24, 892)">
+    <rect width="432" height="130" class="card-bg" />
+    <rect x="0" y="0" width="4" height="130" rx="2" fill="#0ea5e9" />
+    <text x="24" y="28" class="font-sans title-sec">RAM 内存 / VRAM 显存</text>
+
+    <!-- RAM 内存 -->
+    <g transform="translate(24, 38)">
+      <text x="0" y="16" class="font-sans" font-size="12" font-weight="800" fill="#044e37">RAM 使用率</text>
+      <text x="76" y="16" class="font-sans" font-size="12" font-weight="800" fill="#0284c7" id="ram-usage">34%</text>
+      <text x="384" y="16" text-anchor="end" class="font-mono text-unit" id="ram-details">22.0 / 64.0 GB</text>
+      
+      <rect x="0" y="24" width="384" height="6" rx="3" fill="#f0fdf4" />
+      <rect x="0" y="24" width="130" height="6" rx="3" fill="url(#cpu-grad)" id="ram-bar" />
+    </g>
+
+    <!-- VRAM 显存 -->
+    <g transform="translate(24, 78)">
+      <text x="0" y="16" class="font-sans" font-size="12" font-weight="800" fill="#044e37">VRAM 使用率</text>
+      <text x="84" y="16" class="font-sans" font-size="12" font-weight="800" fill="#db2777" id="vram-usage">14%</text>
+      <text x="384" y="16" text-anchor="end" class="font-sans text-unit" id="vram-clock">显存频率 16.4 GHz</text>
+      
+      <rect x="0" y="24" width="384" height="6" rx="3" fill="#f0fdf4" />
+      <rect x="0" y="24" width="54" height="6" rx="3" fill="url(#gpu-grad)" id="vram-bar" />
+    </g>
+  </g>
+
+  <!-- ================= CARD 6: 网络状态 (Y: 1036, H: 115) ================= -->
+  <g id="network-group" transform="translate(24, 1036)">
+    <rect width="432" height="115" class="card-bg" />
+    <rect x="0" y="0" width="4" height="115" rx="2" fill="#059669" />
+    
+    <text x="24" y="26" class="font-sans title-sec">网络带宽状态</text>
+
+    <!-- 下载速度 (更突出、更清晰) -->
+    <path d="M 28 44 L 28 60 M 23 55 L 28 60 L 33 55" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+    <text x="42" y="57" class="font-sans" font-size="20" font-weight="800" fill="#059669" id="net-download">10 KB/s</text>
+    <text x="42" y="73" class="font-sans" font-size="9" font-weight="700" fill="#4a7c6c">下载速度</text>
+
+    <!-- 上传速度 (与下载对齐) -->
+    <path d="M 178 60 L 178 44 M 173 49 L 178 44 L 183 49" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+    <text x="192" y="57" class="font-sans" font-size="20" font-weight="800" fill="#0284c7" id="net-upload">22 KB/s</text>
+    <text x="192" y="73" class="font-sans" font-size="9" font-weight="700" fill="#4a7c6c">上传速度</text>
+
+    <!-- 延迟与抖动看板 -->
+    <rect x="306" y="38" width="102" height="54" class="mini-panel" />
+    <text x="357" y="58" text-anchor="middle" class="font-mono" font-size="16" font-weight="800" fill="#044e37" id="net-ping">18 ms</text>
+    <text x="357" y="70" text-anchor="middle" class="font-sans" font-size="8" font-weight="700" fill="#4a7c6c">延迟状态</text>
+    <text x="357" y="82" text-anchor="middle" class="font-sans" font-size="8" font-weight="500" fill="#4a7c6c" id="net-jitter">抖动 2ms · 丢包 0%</text>
+  </g>
+
+  <!-- ================= CARD 7: 磁盘存储器 (Y: 1165, H: 320) ================= -->
+  <!-- 重新调整布局以自适应5-8个磁盘的动态列表展示 -->
+  <g id="disks-group" transform="translate(24, 1165)">
+    <rect width="432" height="320" class="card-bg" />
+    <rect x="0" y="0" width="4" height="320" rx="2" fill="#15803d" />
+    
+    <text x="24" y="26" class="font-sans title-sec">磁盘存储器</text>
+
+    <!-- 表头标签 -->
+    <text x="24" y="46" class="font-sans" font-size="9" font-weight="700" fill="#4a7c6c">盘符卷标</text>
+    <text x="130" y="46" class="font-sans" font-size="9" font-weight="700" fill="#4a7c6c">使用率</text>
+    <text x="408" y="46" text-anchor="end" class="font-sans" font-size="9" font-weight="700" fill="#4a7c6c">剩余可用空间</text>
+
+    <!-- 磁盘 1 (C:) -->
+    <g transform="translate(24, 52)">
+      <text x="0" y="16" class="font-sans" font-size="12" font-weight="700" fill="#044e37" id="disk-c-label">C: Win11</text>
+      <rect x="106" y="8" width="180" height="8" rx="4" fill="#f0fdf4" />
+      <rect x="106" y="8" width="79" height="8" rx="4" fill="url(#cpu-grad)" id="disk-c-bar" />
+      <text x="296" y="16" class="font-mono" font-size="11" font-weight="700" fill="#0284c7" id="disk-c-pct">44%</text>
+      <text x="384" y="16" text-anchor="end" class="font-sans text-unit" id="disk-c-free">120 GB 可用</text>
+    </g>
+
+    <!-- 磁盘 2 (D:) -->
+    <g transform="translate(24, 86)">
+      <text x="0" y="16" class="font-sans" font-size="12" font-weight="700" fill="#044e37" id="disk-d-label">D: game</text>
+      <rect x="106" y="8" width="180" height="8" rx="4" fill="#f0fdf4" />
+      <rect x="106" y="8" width="126" height="8" rx="4" fill="url(#disk-grad)" id="disk-d-bar" />
+      <text x="296" y="16" class="font-mono" font-size="11" font-weight="700" fill="#15803d" id="disk-d-pct">70%</text>
+      <text x="384" y="16" text-anchor="end" class="font-sans text-unit" id="disk-d-free">320 GB 可用</text>
+    </g>
+
+    <!-- 磁盘 3 (E:) -->
+    <g transform="translate(24, 120)">
+      <text x="0" y="16" class="font-sans" font-size="12" font-weight="700" fill="#044e37" id="disk-e-label">E: software</text>
+      <rect x="106" y="8" width="180" height="8" rx="4" fill="#f0fdf4" />
+      <rect x="106" y="8" width="63" height="8" rx="4" fill="url(#disk-grad)" id="disk-e-bar" />
+      <text x="296" y="16" class="font-mono" font-size="11" font-weight="700" fill="#15803d" id="disk-e-pct">35%</text>
+      <text x="384" y="16" text-anchor="end" class="font-sans text-unit" id="disk-e-free">450 GB 可用</text>
+    </g>
+
+    <!-- 磁盘 4 (F:) -->
+    <g transform="translate(24, 154)">
+      <text x="0" y="16" class="font-sans" font-size="12" font-weight="700" fill="#4a7c6c" id="disk-f-label">F: RECOVER</text>
+      <rect x="106" y="8" width="180" height="8" rx="4" fill="#f0fdf4" />
+      <rect x="106" y="8" width="2" height="8" rx="1" fill="#cbd5e1" id="disk-f-bar" />
+      <text x="296" y="16" class="font-mono" font-size="11" font-weight="700" fill="#4a7c6c" id="disk-f-pct">0%</text>
+      <text x="384" y="16" text-anchor="end" class="font-sans text-unit" id="disk-f-free">15 GB 可用</text>
+    </g>
+
+    <!-- 磁盘 5 (G:) -->
+    <g transform="translate(24, 188)">
+      <text x="0" y="16" class="font-sans" font-size="12" font-weight="700" fill="#044e37" id="disk-g-label">G: data</text>
+      <rect x="106" y="8" width="180" height="8" rx="4" fill="#f0fdf4" />
+      <rect x="106" y="8" width="115" height="8" rx="4" fill="url(#cpu-grad)" id="disk-g-bar" />
+      <text x="296" y="16" class="font-mono" font-size="11" font-weight="700" fill="#0284c7" id="disk-g-pct">64%</text>
+      <text x="384" y="16" text-anchor="end" class="font-sans text-unit" id="disk-g-free">1.2 TB 可用</text>
+    </g>
+
+    <!-- 磁盘 6 (H:) -->
+    <g transform="translate(24, 222)">
+      <text x="0" y="16" class="font-sans" font-size="12" font-weight="700" fill="#044e37" id="disk-h-label">H: 1871</text>
+      <rect x="106" y="8" width="180" height="8" rx="4" fill="#f0fdf4" />
+      <rect x="106" y="8" width="30" height="8" rx="4" fill="url(#gpu-grad)" id="disk-h-bar" />
+      <text x="296" y="16" class="font-mono" font-size="11" font-weight="700" fill="#db2777" id="disk-h-pct">17%</text>
+      <text x="384" y="16" text-anchor="end" class="font-sans text-unit" id="disk-h-free">871 GB 可用</text>
+    </g>
+
+    <!-- 磁盘 7 (Z:) -->
+    <g transform="translate(24, 256)">
+      <text x="0" y="16" class="font-sans" font-size="12" font-weight="700" fill="#044e37" id="disk-z-label">Z: RAMDISK</text>
+      <rect x="106" y="8" width="180" height="8" rx="4" fill="#f0fdf4" />
+      <rect x="106" y="8" width="6" height="8" rx="3" fill="url(#gpu-grad)" id="disk-z-bar" />
+      <text x="296" y="16" class="font-mono" font-size="11" font-weight="700" fill="#db2777" id="disk-z-pct">3%</text>
+      <text x="384" y="16" text-anchor="end" class="font-sans text-unit" id="disk-z-free">23 GB 可用</text>
+    </g>
+
+    <line x1="24" y1="294" x2="408" y2="294" stroke="#e6fcf4" stroke-width="1.2" />
+    <text x="24" y="306" class="font-sans" font-size="9" font-weight="600" fill="#4a7c6c">提示：热插拔设备加载后此列表将自动动态刷新</text>
+  </g>
+
+  <!-- ================= CARD 8: 应用排行 (Y: 1499, H: 280) ================= -->
+  <!-- 支持长应用名称双行换行展示，数据标签宽度固定，配色克制防花哨 -->
+  <g id="apps-group" transform="translate(24, 1499)">
+    <rect width="432" height="280" class="card-bg" />
+    <rect x="0" y="0" width="4" height="280" rx="2" fill="#818cf8" />
+    <text x="24" y="28" class="font-sans title-sec">高负载应用排行</text>
+
+    <!-- 应用 1 -->
+    <g transform="translate(24, 42)">
+      <!-- 应用名称支持换行 -->
+      <text x="0" y="16" class="font-sans" font-size="13" font-weight="800" fill="#044e37" width="384" id="app1-name">
+        <tspan x="0" dy="0">VeryLongGameName</tspan>
+        <tspan x="0" dy="15" font-size="11" font-weight="500" fill="#4a7c6c">-Shipping.exe</tspan>
+      </text>
+      
+      <!-- 固定宽度的微型指标面板 -->
+      <g transform="translate(0, 40)">
+        <rect width="66" height="18" rx="4" fill="#e0f2fe" />
+        <text x="33" y="12" text-anchor="middle" class="font-mono" font-size="10" font-weight="800" fill="#0369a1" id="app1-cpu">CPU 18%</text>
+      </g>
+      <g transform="translate(72, 40)">
+        <rect width="66" height="18" rx="4" fill="#fce7f3" />
+        <text x="33" y="12" text-anchor="middle" class="font-mono" font-size="10" font-weight="800" fill="#be185d" id="app1-gpu">GPU 62%</text>
+      </g>
+      <g transform="translate(144, 40)">
+        <rect width="70" height="18" rx="4" fill="#dcfce7" />
+        <text x="35" y="12" text-anchor="middle" class="font-mono" font-size="10" font-weight="800" fill="#15803d" id="app1-ram">RAM 3.1G</text>
+      </g>
+    </g>
+
+    <line x1="24" y1="116" x2="408" y2="116" stroke="#e6fcf4" stroke-width="1.2" />
+
+    <!-- 应用 2 -->
+    <g transform="translate(24, 126)">
+      <text x="0" y="16" class="font-sans" font-size="13" font-weight="800" fill="#044e37" id="app2-name">chrome.exe</text>
+      
+      <g transform="translate(0, 24)">
+        <rect width="66" height="18" rx="4" fill="#e0f2fe" />
+        <text x="33" y="12" text-anchor="middle" class="font-mono" font-size="10" font-weight="800" fill="#0369a1" id="app2-cpu">CPU 06%</text>
+      </g>
+      <g transform="translate(72, 24)">
+        <rect width="66" height="18" rx="4" fill="#fce7f3" />
+        <text x="33" y="12" text-anchor="middle" class="font-mono" font-size="10" font-weight="800" fill="#be185d" id="app2-gpu">GPU 03%</text>
+      </g>
+      <g transform="translate(144, 24)">
+        <rect width="70" height="18" rx="4" fill="#dcfce7" />
+        <text x="35" y="12" text-anchor="middle" class="font-mono" font-size="10" font-weight="800" fill="#15803d" id="app2-ram">RAM 3.1G</text>
+      </g>
+    </g>
+
+    <line x1="24" y1="200" x2="408" y2="200" stroke="#e6fcf4" stroke-width="1.2" />
+
+    <!-- 应用 3 -->
+    <g transform="translate(24, 210)">
+      <text x="0" y="16" class="font-sans" font-size="13" font-weight="800" fill="#044e37" id="app3-name">
+        <tspan x="0" dy="0">python.exe</tspan>
+        <tspan x="0" dy="15" font-size="11" font-weight="500" fill="#4a7c6c">metrics_agent</tspan>
+      </text>
+      
+      <g transform="translate(0, 40)">
+        <rect width="66" height="18" rx="4" fill="#e0f2fe" />
+        <text x="33" y="12" text-anchor="middle" class="font-mono" font-size="10" font-weight="800" fill="#0369a1" id="app3-cpu">CPU 02%</text>
+      </g>
+      <g transform="translate(72, 40)">
+        <rect width="66" height="18" rx="4" fill="#fce7f3" />
+        <text x="33" y="12" text-anchor="middle" class="font-mono" font-size="10" font-weight="800" fill="#be185d" id="app3-gpu">GPU 00%</text>
+      </g>
+      <g transform="translate(144, 40)">
+        <rect width="70" height="18" rx="4" fill="#dcfce7" />
+        <text x="35" y="12" text-anchor="middle" class="font-mono" font-size="10" font-weight="800" fill="#15803d" id="app3-ram">RAM 0.4G</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ================= CARD 9: 系统诊断与运行状态 (Y: 1793, H: 111) ================= -->
+  <g id="health-group" transform="translate(24, 1793)">
+    <rect width="432" height="111" class="card-bg" />
+    <rect x="0" y="0" width="4" height="111" rx="2" fill="#059669" />
+    
+    <text x="24" y="24" class="font-sans title-sec">系统状态</text>
+
+    <!-- 运行诊断监控 -->
+    <g transform="translate(24, 38)">
+      <circle cx="10" cy="20" r="5" fill="#10b981" />
+      <circle cx="10" cy="20" r="10" fill="#10b981" opacity="0.25">
+        <animate attributeName="r" values="5;11;5" dur="3s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.3;0;0.3" dur="3s" repeatCount="indefinite" />
+      </circle>
+      <text x="26" y="24" class="font-sans" font-size="14" font-weight="800" fill="#15803d" id="health-status">诊断服务在线</text>
+      <text x="26" y="38" class="font-sans" font-size="9" font-weight="700" fill="#4a7c6c">模块正常运转中</text>
+    </g>
+
+    <line x1="184" y1="42" x2="184" y2="88" stroke="#e6fcf4" stroke-width="1" stroke-dasharray="3 3" />
+
+    <!-- DPC 延迟 (单项分拆，更直观清晰) -->
+    <g transform="translate(204, 38)">
+      <text x="0" y="14" class="font-sans text-lbl">DPC 延迟</text>
+      <text x="0" y="34" class="font-mono" font-size="15" font-weight="800" fill="#044e37" id="health-dpc">430 us</text>
+      <text x="0" y="46" class="font-sans" font-size="8" font-weight="600" fill="#15803d">响应极佳</text>
+    </g>
+
+    <line x1="284" y1="42" x2="284" y2="88" stroke="#e6fcf4" stroke-width="1" stroke-dasharray="3 3" />
+
+    <!-- 系统硬缺页 -->
+    <g transform="translate(304, 38)">
+      <text x="0" y="14" class="font-sans text-lbl">物理硬缺页</text>
+      <text x="0" y="34" class="font-mono" font-size="15" font-weight="800" fill="#044e37" id="health-pagefault">0 /s</text>
+      <text x="0" y="46" class="font-sans" font-size="8" font-weight="600" fill="#15803d">内存无故障</text>
+    </g>
+
+    <line x1="368" y1="42" x2="368" y2="88" stroke="#e6fcf4" stroke-width="1" stroke-dasharray="3 3" />
+
+    <!-- 刷新频率 -->
+    <g transform="translate(382, 38)">
+      <text x="0" y="14" class="font-sans text-lbl">数据刷新</text>
+      <text x="0" y="34" class="font-mono" font-size="15" font-weight="800" fill="#044e37" id="health-refresh">0.5s</text>
+      <text x="0" y="46" class="font-sans" font-size="8" font-weight="600" fill="#4a7c6c">周期正常</text>
+    </g>
+  </g>
+</svg>

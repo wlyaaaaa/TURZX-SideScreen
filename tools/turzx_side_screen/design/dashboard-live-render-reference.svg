@@ -1,0 +1,210 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 1920" width="480" height="1920">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4faf7"/>
+      <stop offset="0.5" stop-color="#edf6f2"/>
+      <stop offset="1" stop-color="#e3f2ec"/>
+    </linearGradient>
+    <linearGradient id="cpuGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0284c7"/>
+      <stop offset="1" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="gpuGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#db2777"/>
+      <stop offset="1" stop-color="#f472b6"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#059669"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-8%" y="-8%" width="116%" height="116%">
+      <feDropShadow dx="0" dy="4" stdDeviation="10" flood-color="#022c1e" flood-opacity="0.05"/>
+    </filter>
+    <style>
+      .sans{font-family:"Microsoft YaHei UI","PingFang SC","Segoe UI",Arial,sans-serif}
+      .mono{font-family:"JetBrains Mono","Cascadia Mono","Consolas",monospace;font-variant-numeric:tabular-nums}
+      .card{fill:#fffefa;stroke:#c9dfd6;stroke-width:1;filter:url(#cardShadow)}
+      .title{fill:#059669;font-size:10px;font-weight:800}
+      .dark{fill:#053d2e}
+      .muted{fill:#55786c}
+      .cpu{fill:#0284c7}
+      .gpu{fill:#db2777}
+      .green{fill:#059669}
+      .mini{fill:#f2faf6;stroke:#d9ebe4;stroke-width:.8}
+      .line{stroke:#d9f2e6;stroke-width:1.2}
+    </style>
+  </defs>
+
+  <rect width="480" height="1920" fill="url(#bg)"/>
+
+  <g id="header" transform="translate(24 16)">
+    <rect class="card" width="432" height="130" rx="14"/>
+    <text id="time" class="mono dark" x="12" y="60" font-size="44" font-weight="900">11:46:04</text>
+    <text id="date" class="sans muted" x="14" y="93" font-size="13" font-weight="700">2026-07-05 周日</text>
+    <text id="weather" class="sans dark" x="408" y="46" text-anchor="end" font-size="16" font-weight="800">淮南·田家庵 30°C 多云</text>
+    <text id="weather-detail" class="sans muted" x="408" y="76" text-anchor="end" font-size="13" font-weight="700">湿度 73%</text>
+    <rect x="24" y="106" width="384" height="18" rx="4" fill="#dcfce7"/>
+    <text id="status-strip" class="sans green" x="216" y="119" text-anchor="middle" font-size="12" font-weight="800">系统正常 · 前台 Codex (Beta).exe · 更新 0.5s</text>
+  </g>
+
+  <g id="cpu-card" transform="translate(24 160)">
+    <rect x="0" y="0" width="4" height="280" rx="2" fill="#0284c7"/>
+    <rect class="card" x="8" y="0" width="424" height="280" rx="14"/>
+    <text class="title cpu" x="24" y="32">CPU 处理器</text>
+    <text id="cpu-model" class="sans dark" x="24" y="62" font-size="14" font-weight="800">AMD Ryzen 9 9950X3D 16-Core Processor</text>
+    <text id="cpu-load" class="mono cpu" x="24" y="136" font-size="78" font-weight="900">21</text>
+    <text class="sans cpu" x="124" y="96" font-size="24" font-weight="900">%</text>
+    <text class="sans muted" x="24" y="166" font-size="12" font-weight="800">CPU 使用率</text>
+    <rect class="mini" x="186" y="74" width="104" height="46" rx="6"/>
+    <text class="sans muted" x="198" y="93" font-size="9" font-weight="800">温度</text>
+    <text id="cpu-temp" class="mono dark" x="198" y="114" font-size="14" font-weight="800">65°C</text>
+    <rect class="mini" x="296" y="74" width="112" height="46" rx="6"/>
+    <text class="sans muted" x="308" y="93" font-size="9" font-weight="800">功耗</text>
+    <text id="cpu-power" class="mono dark" x="308" y="114" font-size="14" font-weight="800">141W</text>
+    <rect class="mini" x="186" y="126" width="104" height="46" rx="6"/>
+    <text class="sans muted" x="198" y="145" font-size="9" font-weight="800">主频</text>
+    <text id="cpu-clock" class="mono dark" x="198" y="166" font-size="14" font-weight="800">4.29 GHz</text>
+    <rect class="mini" x="296" y="126" width="112" height="46" rx="6"/>
+    <text class="sans muted" x="308" y="145" font-size="9" font-weight="800">核心电压</text>
+    <text id="cpu-voltage" class="mono dark" x="308" y="166" font-size="14" font-weight="800">1.28 V</text>
+    <text class="sans muted" x="24" y="195" font-size="9" font-weight="800">当前负载</text>
+    <rect x="24" y="200" width="384" height="6" rx="3" fill="#f0fdf4"/>
+    <rect id="cpu-bar" x="24" y="200" width="80" height="6" rx="3" fill="url(#cpuGrad)"/>
+    <text class="sans muted" x="24" y="225" font-size="9" font-weight="800">负载历史 / 实时采样</text>
+    <path id="cpu-history" d="M24 256 C62 248 92 260 128 251 S194 248 232 256 S306 262 408 252" fill="none" stroke="#0284c7" stroke-width="1.4"/>
+  </g>
+
+  <g id="gpu-card" transform="translate(24 454)">
+    <rect x="0" y="0" width="4" height="280" rx="2" fill="#db2777"/>
+    <rect class="card" x="8" y="0" width="424" height="280" rx="14"/>
+    <text class="title gpu" x="24" y="32">GPU 核心</text>
+    <text id="gpu-model" class="sans dark" x="24" y="62" font-size="14" font-weight="800">NVIDIA GeForce RTX 5090 D</text>
+    <text id="gpu-load" class="mono gpu" x="24" y="136" font-size="78" font-weight="900">1</text>
+    <text class="sans gpu" x="76" y="96" font-size="24" font-weight="900">%</text>
+    <text class="sans muted" x="24" y="166" font-size="12" font-weight="800">GPU 使用率</text>
+    <rect class="mini" x="186" y="74" width="104" height="46" rx="6"/>
+    <text class="sans muted" x="198" y="93" font-size="9" font-weight="800">温度</text>
+    <text id="gpu-temp" class="mono dark" x="198" y="114" font-size="14" font-weight="800">54°C</text>
+    <rect class="mini" x="296" y="74" width="112" height="46" rx="6"/>
+    <text class="sans muted" x="308" y="93" font-size="9" font-weight="800">功耗</text>
+    <text id="gpu-power" class="mono dark" x="308" y="114" font-size="14" font-weight="800">95W</text>
+    <rect class="mini" x="186" y="126" width="104" height="46" rx="6"/>
+    <text class="sans muted" x="198" y="145" font-size="9" font-weight="800">核心频率</text>
+    <text id="gpu-clock" class="mono dark" x="198" y="166" font-size="14" font-weight="800">2.51 GHz</text>
+    <rect class="mini" x="296" y="126" width="112" height="46" rx="6"/>
+    <text class="sans muted" x="308" y="145" font-size="9" font-weight="800">电压</text>
+    <text id="gpu-voltage" class="mono dark" x="308" y="166" font-size="14" font-weight="800">0.96 V</text>
+    <text class="sans muted" x="24" y="195" font-size="9" font-weight="800">当前负载</text>
+    <rect x="24" y="200" width="384" height="6" rx="3" fill="#fdf2f8"/>
+    <rect id="gpu-bar" x="24" y="200" width="4" height="6" rx="3" fill="url(#gpuGrad)"/>
+    <text class="sans muted" x="24" y="225" font-size="9" font-weight="800">负载历史 / 实时采样</text>
+    <path id="gpu-history" d="M24 256 C72 265 106 254 150 259 S228 250 278 257 S344 246 408 259" fill="none" stroke="#db2777" stroke-width="1.4"/>
+  </g>
+
+  <g id="fps-card" transform="translate(24 748)">
+    <rect x="0" y="0" width="4" height="130" rx="2" fill="#059669"/>
+    <rect class="card" x="8" y="0" width="424" height="130" rx="14"/>
+    <text class="title green" x="24" y="30">FPS / 帧率</text>
+    <text id="fps-current" class="mono dark" x="24" y="90" font-size="60" font-weight="900">48</text>
+    <text class="sans dark" x="102" y="82" font-size="15" font-weight="800">FPS</text>
+    <rect class="mini" x="186" y="44" width="64" height="54" rx="6"/>
+    <text class="sans muted" x="198" y="64" font-size="9" font-weight="800">平均</text>
+    <text id="fps-average" class="mono dark" x="198" y="86" font-size="14" font-weight="800">33</text>
+    <rect class="mini" x="256" y="44" width="60" height="54" rx="6"/>
+    <text class="sans muted" x="268" y="64" font-size="9" font-weight="800">1%低</text>
+    <text id="fps-low" class="mono gpu" x="268" y="86" font-size="14" font-weight="800">5</text>
+    <rect class="mini" x="322" y="44" width="86" height="54" rx="6"/>
+    <text class="sans muted" x="334" y="64" font-size="9" font-weight="800">帧时间</text>
+    <text id="frametime" class="mono dark" x="334" y="86" font-size="14" font-weight="800">20.9ms</text>
+  </g>
+
+  <g id="memory-card" transform="translate(24 892)">
+    <rect x="0" y="0" width="4" height="130" rx="2" fill="#0ea5e9"/>
+    <rect class="card" x="8" y="0" width="424" height="130" rx="14"/>
+    <text class="title green" x="24" y="30">RAM 内存 / VRAM 显存</text>
+    <text class="sans dark" x="24" y="53" font-size="12" font-weight="800">RAM 使用率</text>
+    <text id="ram-percent" class="sans cpu" x="100" y="53" font-size="12" font-weight="800">44%</text>
+    <text id="ram-detail" class="mono muted" x="408" y="53" text-anchor="end" font-size="11" font-weight="800">27.3 GB / 61.6 GB</text>
+    <rect x="24" y="62" width="384" height="6" rx="3" fill="#f0fdf4"/>
+    <rect id="ram-bar" x="24" y="62" width="169" height="6" rx="3" fill="url(#cpuGrad)"/>
+    <text class="sans dark" x="24" y="93" font-size="12" font-weight="800">VRAM 使用率</text>
+    <text id="vram-percent" class="sans gpu" x="108" y="93" font-size="12" font-weight="800">14%</text>
+    <text id="vram-clock" class="sans muted" x="408" y="93" text-anchor="end" font-size="11" font-weight="700">显存频率 16.6 GHz</text>
+    <rect x="24" y="102" width="384" height="6" rx="3" fill="#fdf2f8"/>
+    <rect id="vram-bar" x="24" y="102" width="54" height="6" rx="3" fill="url(#gpuGrad)"/>
+  </g>
+
+  <g id="network-card" transform="translate(24 1036)">
+    <rect x="0" y="0" width="4" height="115" rx="2" fill="#059669"/>
+    <rect class="card" x="8" y="0" width="424" height="115" rx="14"/>
+    <text class="title green" x="24" y="30">网络实时速率</text>
+    <text id="net-down" class="sans green" x="24" y="72" font-size="28" font-weight="900">↓10KB/s</text>
+    <text class="sans muted" x="24" y="91" font-size="11" font-weight="800">下载速度</text>
+    <text id="net-up" class="sans cpu" x="168" y="72" font-size="28" font-weight="900">↑12KB/s</text>
+    <text class="sans muted" x="168" y="91" font-size="11" font-weight="800">上传速度</text>
+    <rect class="mini" x="306" y="38" width="102" height="54" rx="6"/>
+    <text id="ping" class="mono dark" x="357" y="63" text-anchor="middle" font-size="16" font-weight="800">39ms</text>
+    <text class="sans muted" x="357" y="79" text-anchor="middle" font-size="8" font-weight="800">延迟状态</text>
+    <text id="net-detail" class="sans muted" x="357" y="91" text-anchor="middle" font-size="8">抖动 7.9ms · 丢包 0%</text>
+  </g>
+
+  <g id="disk-card" transform="translate(24 1165)">
+    <rect x="0" y="0" width="4" height="320" rx="2" fill="#15803d"/>
+    <rect class="card" x="8" y="0" width="424" height="320" rx="14"/>
+    <text class="title green" x="24" y="30">磁盘存储器</text>
+    <text class="sans muted" x="24" y="51" font-size="9" font-weight="800">盘符卷标</text>
+    <text class="sans muted" x="130" y="51" font-size="9" font-weight="800">使用率</text>
+    <text class="sans muted" x="408" y="51" text-anchor="end" font-size="9" font-weight="800">剩余可用空间</text>
+    <g class="sans" font-size="12" font-weight="800">
+      <text x="24" y="74" class="dark">C: Win11</text><rect x="130" y="69" width="180" height="8" rx="4" fill="#f0fdf4"/><rect x="130" y="69" width="77" height="8" rx="4" fill="url(#cpuGrad)"/><text x="320" y="74" class="cpu">43%</text><text x="408" y="74" text-anchor="end" class="muted">342 GB 可用</text>
+      <text x="24" y="108" class="dark">D: game</text><rect x="130" y="103" width="180" height="8" rx="4" fill="#f0fdf4"/><rect x="130" y="103" width="126" height="8" rx="4" fill="url(#greenGrad)"/><text x="320" y="108" class="green">70%</text><text x="408" y="108" text-anchor="end" class="muted">1.1 TB 可用</text>
+      <text x="24" y="142" class="dark">E: software</text><rect x="130" y="137" width="180" height="8" rx="4" fill="#f0fdf4"/><rect x="130" y="137" width="63" height="8" rx="4" fill="url(#greenGrad)"/><text x="320" y="142" class="green">35%</text><text x="408" y="142" text-anchor="end" class="muted">2 TB 可用</text>
+      <text x="24" y="176" class="dark">F: RECOVER</text><rect x="130" y="171" width="180" height="8" rx="4" fill="#f0fdf4"/><rect x="130" y="171" width="3" height="8" rx="4" fill="#22c55e"/><text x="320" y="176" class="green">0%</text><text x="408" y="176" text-anchor="end" class="muted">28 GB 可用</text>
+      <text x="24" y="210" class="dark">G: data</text><rect x="130" y="205" width="180" height="8" rx="4" fill="#f0fdf4"/><rect x="130" y="205" width="115" height="8" rx="4" fill="url(#cpuGrad)"/><text x="320" y="210" class="cpu">64%</text><text x="408" y="210" text-anchor="end" class="muted">693 GB 可用</text>
+      <text x="24" y="244" class="dark">H: 187150159...</text><rect x="130" y="239" width="180" height="8" rx="4" fill="#f0fdf4"/><rect x="130" y="239" width="29" height="8" rx="4" fill="url(#gpuGrad)"/><text x="320" y="244" class="gpu">16%</text><text x="408" y="244" text-anchor="end" class="muted">796 GB 可用</text>
+      <text x="24" y="278" class="dark">Z: RAMDISK</text><rect x="130" y="273" width="180" height="8" rx="4" fill="#f0fdf4"/><rect x="130" y="273" width="6" height="8" rx="4" fill="url(#gpuGrad)"/><text x="320" y="278" class="gpu">3%</text><text x="408" y="278" text-anchor="end" class="muted">31 GB 可用</text>
+    </g>
+  </g>
+
+  <g id="apps-card" transform="translate(24 1499)">
+    <rect x="0" y="0" width="4" height="280" rx="2" fill="#a78bfa"/>
+    <rect class="card" x="8" y="0" width="424" height="280" rx="14"/>
+    <text class="title green" x="24" y="30">应用资源排行</text>
+    <g id="app-row-1" transform="translate(24 42)">
+      <text class="sans dark" x="0" y="26" font-size="18" font-weight="900">Typora.exe</text>
+      <rect x="0" y="44" width="96" height="22" rx="5" fill="#e0f2fe"/><text class="mono cpu" x="48" y="59" text-anchor="middle" font-size="11" font-weight="900">CPU 09%</text>
+      <rect x="106" y="44" width="116" height="22" rx="5" fill="#dcfce7"/><text class="mono green" x="164" y="59" text-anchor="middle" font-size="11" font-weight="900">RAM 0.5G</text>
+      <line class="line" x1="0" y1="74" x2="384" y2="74"/>
+    </g>
+    <g id="app-row-2" transform="translate(24 126)">
+      <text class="sans dark" x="0" y="26" font-size="18" font-weight="900">Codex (Beta).exe</text>
+      <rect x="0" y="44" width="96" height="22" rx="5" fill="#e0f2fe"/><text class="mono cpu" x="48" y="59" text-anchor="middle" font-size="11" font-weight="900">CPU 03%</text>
+      <rect x="106" y="44" width="116" height="22" rx="5" fill="#dcfce7"/><text class="mono green" x="164" y="59" text-anchor="middle" font-size="11" font-weight="900">RAM 1.9G</text>
+      <line class="line" x1="0" y1="74" x2="384" y2="74"/>
+    </g>
+    <g id="app-row-3" transform="translate(24 210)">
+      <text class="sans dark" x="0" y="26" font-size="18" font-weight="900">python.exe</text>
+      <rect x="0" y="44" width="96" height="22" rx="5" fill="#e0f2fe"/><text class="mono cpu" x="48" y="59" text-anchor="middle" font-size="11" font-weight="900">CPU 03%</text>
+      <rect x="106" y="44" width="116" height="22" rx="5" fill="#dcfce7"/><text class="mono green" x="164" y="59" text-anchor="middle" font-size="11" font-weight="900">RAM 0.1G</text>
+    </g>
+  </g>
+
+  <g id="health-card" transform="translate(24 1793)">
+    <rect x="0" y="0" width="4" height="111" rx="2" fill="#059669"/>
+    <rect class="card" x="8" y="0" width="424" height="111" rx="14"/>
+    <text class="title green" x="24" y="28">系统状态</text>
+    <circle cx="58" cy="64" r="10" fill="#d1fae5"/>
+    <circle cx="58" cy="64" r="5" fill="#10b981"/>
+    <text id="health-status" class="sans green" x="76" y="60" font-size="14" font-weight="800">诊断服务在线</text>
+    <text id="health-detail" class="sans muted" x="76" y="78" font-size="9" font-weight="800">模块正常运转中</text>
+    <line x1="184" y1="42" x2="184" y2="88" stroke="#d9f2e6" stroke-dasharray="3 3"/>
+    <text class="sans muted" x="204" y="54" font-size="9" font-weight="800">DPC 延迟</text>
+    <text id="dpc" class="mono dark" x="204" y="74" font-size="15" font-weight="800">315 us</text>
+    <line x1="284" y1="42" x2="284" y2="88" stroke="#d9f2e6" stroke-dasharray="3 3"/>
+    <text class="sans muted" x="304" y="54" font-size="9" font-weight="800">采集状态</text>
+    <text id="collector" class="mono dark" x="304" y="74" font-size="15" font-weight="800">OK</text>
+    <line x1="368" y1="42" x2="368" y2="88" stroke="#d9f2e6" stroke-dasharray="3 3"/>
+    <text class="sans muted" x="382" y="54" font-size="8" font-weight="800">数据刷新</text>
+    <text id="refresh" class="mono dark" x="382" y="74" font-size="15" font-weight="800">0.5s</text>
+  </g>
+</svg>

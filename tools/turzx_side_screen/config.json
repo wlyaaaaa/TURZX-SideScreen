@@ -1,0 +1,44 @@
+{
+  "serial": {
+    "port": "COM7",
+    "baudRate": 2000000,
+    "useRjcpSerialPortStream": true,
+    "allowSystemIoPortsFallback": false
+  },
+  "screen": {
+    "width": 480,
+    "height": 1920,
+    "dataRefreshMs": 500,
+    "maxSendMs": 450,
+    "largeDiffFallbackMs": 1000,
+    "forceFullFrameOnStart": true
+  },
+  "metrics": {
+    "url": "http://127.0.0.1:18765/snapshot",
+    "listenHost": "127.0.0.1",
+    "listenPort": 18765,
+    "pollMs": 500,
+    "timeAuditRoot": "E:\\TimeAudit"
+  },
+  "weather": {
+    "city": "田家庵",
+    "shortText": true
+  },
+  "time": {
+    "timezone": "Asia/Shanghai"
+  },
+  "network": {
+    "pingHost": "223.5.5.5"
+  },
+  "ui": {
+    "designSvg": "tools\\turzx_side_screen\\design\\dashboard-final-candidate.svg",
+    "background": "#f4faf7",
+    "cpuAccent": "#0284c7",
+    "gpuAccent": "#db2777",
+    "networkAccent": "#059669",
+    "diskAccent": "#15803d",
+    "maxTopProcesses": 3,
+    "maxDiskRows": 8,
+    "historySeconds": 60
+  }
+}

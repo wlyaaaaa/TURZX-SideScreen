@@ -1,0 +1,66 @@
+# Runtime output
+*.py[cod]
+*.log
+*.tmp
+*.bak
+*.badil.bak
+dist/
+release/
+
+# Local machine state
+AppConfig.data
+config/
+temp/
+DownloadTemp/
+UploadTemp/
+ImageCache/
+backup.*/
+restore/
+debug.log
+code.ini
+restart.bat
+*.bat
+docs/superpowers/
+
+# Tool allowlist for the public repository
+tools/*
+!tools/turzx_side_screen/
+!tools/turzx_side_screen/**
+!tools/turzx_weather_shim/
+!tools/turzx_weather_shim/**
+tools/**/out/
+tools/**/__pycache__/
+
+# Vendor / original TURZX binaries and media
+*.exe
+*.dll
+*.zip
+*.data
+*.docx
+*.jpg
+*.jpeg
+*.png
+app
+Driver/
+FFMpeg/
+fonts/
+fw/
+theme/
+video/
+visual/
+
+# Keep source scripts and design references that are intentionally public
+!README.md
+!LICENSE
+!docs/**
+docs/superpowers/
+!scripts/**
+!start-side-screen.cmd
+!install-startup.cmd
+!uninstall-startup.cmd
+
+# Git / editor
+.vs/
+.vscode/
+*.user
+*.suo

@@ -642,6 +642,7 @@ def _weather_from_qweather_payload(city: str | None, payload: dict[str, Any]) ->
     temp = _round_float_or_none(now.get("temp"))
     condition = _empty_to_none(now.get("text"))
     humidity = _round_float_or_none(now.get("humidity"))
+    aqi = _round_float_or_none(now.get("aqi"))
     wind_dir = _empty_to_none(now.get("windDir"))
     wind_scale = _empty_to_none(now.get("windScale"))
     wind_text = None
@@ -657,7 +658,7 @@ def _weather_from_qweather_payload(city: str | None, payload: dict[str, Any]) ->
         "temperature_celsius": temp,
         "temperature_c": temp,
         "temperature_text": f"{int(round(temp))}°C" if temp is not None else None,
-        "aqi": None,
+        "aqi": int(round(aqi)) if aqi is not None else None,
         "humidity_percent": humidity,
         "wind_text": wind_text,
         "source": "weather_shim",

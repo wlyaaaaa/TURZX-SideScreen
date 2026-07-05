@@ -16,6 +16,7 @@ $program = @'
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Reflection;
 using TURZX.SideScreen;
 
 internal static class RenderPreview
@@ -47,6 +48,27 @@ internal static class RenderPreview
                 Console.Error.WriteLine("Unexpected agent bitmap size: {0}x{1}", agentBitmap.Width, agentBitmap.Height);
                 return 4;
             }
+        }
+
+        MethodInfo weatherDetailMethod = typeof(SideScreenRenderer).GetMethod("WeatherDetailLine", BindingFlags.NonPublic | BindingFlags.Static);
+        if (weatherDetailMethod == null)
+        {
+            Console.Error.WriteLine("WeatherDetailLine method not found.");
+            return 5;
+        }
+
+        string missingAqiLine = (string)weatherDetailMethod.Invoke(null, new object[] { new WeatherSnapshot { HumidityPercent = 41 } });
+        if (missingAqiLine != "AQI -- · 湿度 41%")
+        {
+            Console.Error.WriteLine("Unexpected missing-AQI weather line: " + missingAqiLine);
+            return 6;
+        }
+
+        string presentAqiLine = (string)weatherDetailMethod.Invoke(null, new object[] { new WeatherSnapshot { Aqi = 75, HumidityPercent = 41 } });
+        if (presentAqiLine != "AQI 75 · 湿度 41%")
+        {
+            Console.Error.WriteLine("Unexpected present-AQI weather line: " + presentAqiLine);
+            return 7;
         }
 
         Console.WriteLine("Preview written: " + args[0]);

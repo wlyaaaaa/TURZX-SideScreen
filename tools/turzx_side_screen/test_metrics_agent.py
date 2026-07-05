@@ -277,6 +277,7 @@ class MetricsAgentTests(unittest.TestCase):
                 "temp": "31",
                 "text": "晴",
                 "humidity": "38",
+                "aqi": "75",
                 "windDir": "北",
                 "windScale": "2",
             },
@@ -288,6 +289,7 @@ class MetricsAgentTests(unittest.TestCase):
         self.assertEqual(31.0, weather["temperature_celsius"])
         self.assertEqual("31°C", weather["temperature_text"])
         self.assertEqual("晴", weather["condition"])
+        self.assertEqual(75, weather["aqi"])
         self.assertEqual(38.0, weather["humidity_percent"])
         self.assertEqual("北 2级", weather["wind_text"])
         self.assertEqual("weather_shim", weather["source"])

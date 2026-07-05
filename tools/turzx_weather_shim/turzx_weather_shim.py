@@ -118,6 +118,7 @@ def build_now_payload(location_id, open_meteo_payload, lang="zh"):
     now_time = current.get("time") or datetime.now(timezone.utc).isoformat()
     wind_degrees = current.get("wind_direction_10m", 0)
     wind_speed = current.get("wind_speed_10m", 0)
+    aqi = current.get("us_aqi")
 
     return {
         "code": "200",
@@ -134,6 +135,7 @@ def build_now_payload(location_id, open_meteo_payload, lang="zh"):
             "windScale": beaufort_scale(wind_speed),
             "windSpeed": rounded_text(wind_speed),
             "humidity": rounded_text(current.get("relative_humidity_2m", 0)),
+            "aqi": rounded_text(aqi) if aqi is not None else "",
             "precip": "0.0",
             "pressure": rounded_text(current.get("pressure_msl", 0)),
             "vis": "",
@@ -192,6 +194,30 @@ def fetch_open_meteo(location):
         return json.loads(response.read().decode("utf-8"))
 
 
+def fetch_open_meteo_air_quality(location):
+    params = {
+        "latitude": location["latitude"],
+        "longitude": location["longitude"],
+        "current": "us_aqi",
+        "timezone": "auto",
+    }
+    url = "https://air-quality-api.open-meteo.com/v1/air-quality?" + urllib.parse.urlencode(params)
+    with urllib.request.urlopen(url, timeout=10) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def merge_air_quality(weather_payload, air_quality_payload):
+    weather_current = weather_payload.get("current")
+    air_current = air_quality_payload.get("current") if isinstance(air_quality_payload, dict) else None
+    if not isinstance(weather_current, dict) or not isinstance(air_current, dict):
+        return weather_payload
+
+    aqi = air_current.get("us_aqi")
+    if aqi is not None:
+        weather_current["us_aqi"] = aqi
+    return weather_payload
+
+
 class WeatherShimHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -202,7 +228,12 @@ class WeatherShimHandler(BaseHTTPRequestHandler):
         try:
             if parsed.path.endswith("/v7/weather/now"):
                 location = resolve_location(location_id)
-                payload = build_now_payload(location_id, fetch_open_meteo(location), lang)
+                weather_payload = fetch_open_meteo(location)
+                try:
+                    weather_payload = merge_air_quality(weather_payload, fetch_open_meteo_air_quality(location))
+                except Exception:
+                    pass
+                payload = build_now_payload(location_id, weather_payload, lang)
                 self.write_json(200, payload)
             elif parsed.path.endswith("/geo/v2/city/lookup"):
                 self.write_json(200, build_city_lookup_payload(location_id))

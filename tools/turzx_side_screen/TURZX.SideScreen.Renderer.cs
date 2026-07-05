@@ -993,10 +993,7 @@ namespace TURZX.SideScreen
         private static string WeatherDetailLine(WeatherSnapshot weather)
         {
             List<string> parts = new List<string>();
-            if (weather != null && weather.Aqi.HasValue)
-            {
-                parts.Add("AQI " + FormatInt(weather.Aqi));
-            }
+            parts.Add("AQI " + (weather != null && weather.Aqi.HasValue ? FormatInt(weather.Aqi) : "--"));
             if (weather != null && weather.HumidityPercent.HasValue)
             {
                 parts.Add("湿度 " + FormatPercent(weather.HumidityPercent));

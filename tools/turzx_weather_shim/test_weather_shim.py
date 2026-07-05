@@ -19,6 +19,7 @@ class QWeatherShimTests(unittest.TestCase):
                 "wind_speed_10m": 16.2,
                 "wind_direction_10m": 45,
                 "pressure_msl": 1006.8,
+                "us_aqi": 74.6,
             }
         }
 
@@ -30,6 +31,7 @@ class QWeatherShimTests(unittest.TestCase):
         self.assertEqual(payload["now"]["windDir"], "东北")
         self.assertEqual(payload["now"]["windScale"], "3")
         self.assertEqual(payload["now"]["humidity"], "61")
+        self.assertEqual(payload["now"]["aqi"], "75")
 
     def test_wind_direction_is_compact_for_small_turzx_panel(self):
         self.assertEqual(shim.wind_direction_cn(22.5), "东北")

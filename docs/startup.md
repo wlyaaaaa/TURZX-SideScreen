@@ -5,11 +5,13 @@ The recommended startup path is a Windows Scheduled Task:
 - Task name: `TURZX SideScreen`
 - Run level: `Highest`
 - Trigger: user logon
-- Action: `StartSideScreenStack.ps1`
+- Action: `StartSideScreenWatchdog.ps1`
 - Default port: `COM7`
 - Default refresh: `500ms`
 
 This is not a `SYSTEM` account task. It runs as the current interactive user with `Highest` run level, which is usually safer for COM ports, user-profile Python installs, RTSS/Afterburner, and other desktop telemetry tools.
+
+The watchdog starts the render stack, listens for `Win32_PowerManagementEvent`, sends a black frame when Windows enters suspend, and restarts the stack after resume. The black frame is a best-effort screen blanking fallback; the current public protocol path does not expose a real panel power-off command.
 
 Install:
 
@@ -38,3 +40,9 @@ The installer disables these old stock startup tasks if present:
 - `TURZX_88inch_AdminStart`
 
 It does not delete them, so rollback is still possible.
+
+Create a desktop shortcut:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\create-desktop-shortcut.ps1
+```

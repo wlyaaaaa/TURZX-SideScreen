@@ -35,6 +35,10 @@ if ([string]::IsNullOrWhiteSpace($cscPath)) {
     throw "csc.exe not found."
 }
 
+if (Get-Process "TURZX.SideScreen.Stream*" -ErrorAction SilentlyContinue) {
+    $exePath = Join-Path $outDir ("TURZX.SideScreen.Stream.{0}.exe" -f $PID)
+}
+
 $sources = @(
     (Join-Path $scriptDir "SnapshotModels.cs"),
     (Join-Path $scriptDir "TURZX.SideScreen.Renderer.cs"),

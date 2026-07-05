@@ -16,9 +16,9 @@ if (-not $isAdmin) {
 }
 
 $Root = (Resolve-Path $Root).Path
-$script = Join-Path $Root "tools\turzx_side_screen\StartSideScreenStack.ps1"
+$script = Join-Path $Root "tools\turzx_side_screen\StartSideScreenWatchdog.ps1"
 if (!(Test-Path -LiteralPath $script)) {
-    throw "Missing stack script: $script"
+    throw "Missing watchdog script: $script"
 }
 
 $checker = Join-Path $Root "scripts\check-runtime.ps1"

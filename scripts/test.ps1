@@ -20,6 +20,9 @@ if ($LASTEXITCODE -ne 0) { throw "TestRenderer.ps1 failed" }
 powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $side "TestHttpPipeline.ps1")
 if ($LASTEXITCODE -ne 0) { throw "TestHttpPipeline.ps1 failed" }
 
+powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $side "TestPowerWatchdog.ps1") -Root $Root
+if ($LASTEXITCODE -ne 0) { throw "TestPowerWatchdog.ps1 failed" }
+
 powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root "scripts\test-public-release.ps1")
 if ($LASTEXITCODE -ne 0) { throw "test-public-release.ps1 failed" }
 

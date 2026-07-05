@@ -130,6 +130,11 @@ namespace TURZX.SideScreen
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("stream fatal: " + ex.GetType().Name + ": " + ex.Message);
+                return 1;
+            }
             finally
             {
                 if (diffSession != null)

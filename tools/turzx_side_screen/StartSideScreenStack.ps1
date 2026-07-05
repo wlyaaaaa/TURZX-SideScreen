@@ -1,7 +1,8 @@
 param(
     [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path,
     [string]$Port = "COM7",
-    [int]$IntervalMs = 500
+    [int]$IntervalMs = 500,
+    [switch]$Worker
 )
 
 Set-StrictMode -Version Latest
@@ -16,6 +17,44 @@ function Write-StackLog {
     param([string]$Message)
     $line = "{0} {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $Message
     Add-Content -LiteralPath $logPath -Value $line -Encoding UTF8
+}
+
+if (-not $Worker) {
+    $watchdog = Join-Path $scriptDir "StartSideScreenWatchdog.ps1"
+    $stopScript = Join-Path $scriptDir "StopSideScreenStack.ps1"
+    $restartFlag = Join-Path $outDir "restart-on-start.flag"
+    $stopFlag = Join-Path $outDir "stop-on-start.flag"
+    if (!(Test-Path -LiteralPath $watchdog)) {
+        throw "Missing watchdog script: $watchdog"
+    }
+
+    if (Test-Path -LiteralPath $stopFlag) {
+        Remove-Item -LiteralPath $stopFlag -Force -ErrorAction SilentlyContinue
+        Write-StackLog "stop-on-start flag detected; stopping stack and exiting"
+        powershell -NoProfile -ExecutionPolicy Bypass -File $stopScript -Root $Root -IncludeWatchdog -SkipStackEntrypoint -Quiet
+        exit 0
+    }
+
+    if (Test-Path -LiteralPath $restartFlag) {
+        Remove-Item -LiteralPath $restartFlag -Force -ErrorAction SilentlyContinue
+        Write-StackLog "restart-on-start flag detected; stopping stale elevated stack first"
+        powershell -NoProfile -ExecutionPolicy Bypass -File $stopScript -Root $Root -IncludeWatchdog -SkipStackEntrypoint -Quiet
+        Start-Sleep -Seconds 2
+    }
+
+    Write-StackLog ("delegating to watchdog root={0} port={1} interval={2}" -f $Root, $Port, $IntervalMs)
+    Start-Process -FilePath "powershell.exe" `
+        -ArgumentList @(
+            "-NoProfile",
+            "-ExecutionPolicy", "Bypass",
+            "-File", $watchdog,
+            "-Root", $Root,
+            "-Port", $Port,
+            "-IntervalMs", [string]$IntervalMs
+        ) `
+        -WorkingDirectory $scriptDir `
+        -WindowStyle Hidden | Out-Null
+    exit 0
 }
 
 function Find-Python {

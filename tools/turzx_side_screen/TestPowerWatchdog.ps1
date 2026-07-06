@@ -11,6 +11,7 @@ $stack = Join-Path $side "StartSideScreenStack.ps1"
 $stop = Join-Path $side "StopSideScreenStack.ps1"
 $blank = Join-Path $side "SendBlankFrame.ps1"
 $installer = Join-Path $Root "scripts\install-startup-admin.ps1"
+$installerCmd = Join-Path $Root "scripts\install-startup-admin.cmd"
 $start = Join-Path $Root "scripts\start.ps1"
 
 foreach ($path in @($watchdog, $stop, $blank)) {
@@ -22,6 +23,10 @@ foreach ($path in @($watchdog, $stop, $blank)) {
 $watchdogText = Get-Content -Raw -LiteralPath $watchdog
 foreach ($pattern in @(
     "Win32_PowerManagementEvent",
+    "Win32_ComputerShutdownEvent",
+    "TURZXSideScreenShutdown",
+    "Stop-OtherWatchdogs",
+    "cleared paused flag at watchdog start",
     "EventType = 4",
     "EventType = 7",
     "EventType = 18",
@@ -36,6 +41,15 @@ foreach ($pattern in @(
     }
 }
 
+foreach ($pattern in @(
+    'Send-Blank -Reason "shutdown"',
+    'Send-Blank -Reason "watchdog-exit"'
+)) {
+    if ($watchdogText -notmatch [regex]::Escape($pattern)) {
+        throw "Watchdog must blank the panel during shutdown and watchdog exit; missing: $pattern"
+    }
+}
+
 $stackText = Get-Content -Raw -LiteralPath $stack
 foreach ($pattern in @("StartSideScreenWatchdog.ps1", '[switch]$Worker')) {
     if ($stackText -notmatch [regex]::Escape($pattern)) {
@@ -46,6 +60,16 @@ foreach ($pattern in @("StartSideScreenWatchdog.ps1", '[switch]$Worker')) {
 $installerText = Get-Content -Raw -LiteralPath $installer
 if ($installerText -notmatch [regex]::Escape("StartSideScreenWatchdog.ps1")) {
     throw "Startup installer must point the scheduled task at StartSideScreenWatchdog.ps1."
+}
+
+$installerCmdText = Get-Content -Raw -LiteralPath $installerCmd
+foreach ($pattern in @("Start-Process", "-Verb RunAs", "install-startup-admin.ps1", "-Root")) {
+    if ($installerCmdText -notmatch [regex]::Escape($pattern)) {
+        throw "Admin startup cmd wrapper missing expected pattern: $pattern"
+    }
+}
+if ($installerCmdText -match [regex]::Escape("-NoExit")) {
+    throw "Admin startup cmd wrapper must not leave an elevated PowerShell window open."
 }
 
 $startText = Get-Content -Raw -LiteralPath $start

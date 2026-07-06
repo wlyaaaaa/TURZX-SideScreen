@@ -68,6 +68,16 @@ if (-not $DoNotDisableOldTasks) {
     }
 }
 
+$shortcutScript = Join-Path $Root "scripts\create-desktop-shortcut.ps1"
+if (Test-Path -LiteralPath $shortcutScript) {
+    try {
+        powershell -NoProfile -ExecutionPolicy Bypass -File $shortcutScript -Root $Root -Port $Port -IntervalMs $IntervalMs | Out-Host
+    }
+    catch {
+        Write-Warning ("Startup task installed, but shortcut creation failed: {0}" -f $_.Exception.Message)
+    }
+}
+
 Get-ScheduledTask | Where-Object { $_.TaskName -in @($TaskName, "TURZX WeatherFix", "TURZX_88inch_AdminStart") } |
     Select-Object TaskName, State, @{Name="RunLevel";Expression={$_.Principal.RunLevel}},
         @{Name="Action";Expression={($_.Actions | ForEach-Object { $_.Execute + " " + $_.Arguments }) -join " | "}} |

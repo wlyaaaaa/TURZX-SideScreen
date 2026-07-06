@@ -23,7 +23,8 @@ $pausedPath = Join-Path $outDir "side-screen-watchdog.paused"
 $stackScript = Join-Path $scriptDir "StartSideScreenStack.ps1"
 $stopScript = Join-Path $scriptDir "StopSideScreenStack.ps1"
 $blankScript = Join-Path $scriptDir "SendBlankFrame.ps1"
-$sourceId = "TURZXSideScreenPower"
+$powerSourceId = "TURZXSideScreenPower"
+$shutdownSourceId = "TURZXSideScreenShutdown"
 
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 Set-Content -LiteralPath $watchdogPidPath -Value $PID -Encoding ASCII
@@ -71,16 +72,48 @@ function Send-Blank {
     }
 }
 
-Get-EventSubscriber -SourceIdentifier $sourceId -ErrorAction SilentlyContinue |
-    Unregister-Event -ErrorAction SilentlyContinue
-Get-Event -SourceIdentifier $sourceId -ErrorAction SilentlyContinue |
-    Remove-Event -ErrorAction SilentlyContinue
+function Stop-OtherWatchdogs {
+    param([string]$Reason)
 
-$subscription = $null
+    $rootPattern = "*" + $Root + "*"
+    $stopped = 0
+    Get-CimInstance Win32_Process |
+        Where-Object {
+            $_.ProcessId -ne $PID -and
+            ($_.Name -like "powershell*" -or $_.Name -like "pwsh*") -and
+            $_.CommandLine -like "*StartSideScreenWatchdog.ps1*" -and
+            $_.CommandLine -like $rootPattern
+        } |
+        ForEach-Object {
+            $stopped++
+            Write-WatchdogLog ("stopping old watchdog PID={0} reason={1}" -f $_.ProcessId, $Reason)
+            Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+        }
+
+    if ($stopped -gt 0) {
+        Start-Sleep -Milliseconds 1500
+    }
+}
+
+foreach ($eventSourceId in @($powerSourceId, $shutdownSourceId)) {
+    Get-EventSubscriber -SourceIdentifier $eventSourceId -ErrorAction SilentlyContinue |
+        Unregister-Event -ErrorAction SilentlyContinue
+    Get-Event -SourceIdentifier $eventSourceId -ErrorAction SilentlyContinue |
+        Remove-Event -ErrorAction SilentlyContinue
+}
+
+Stop-OtherWatchdogs -Reason "watchdog-start"
+Remove-Item -LiteralPath $pausedPath -Force -ErrorAction SilentlyContinue
+Write-WatchdogLog "cleared paused flag at watchdog start"
+
+$powerSubscription = $null
+$shutdownSubscription = $null
 if (-not $NoPowerEvents) {
     $powerQuery = "SELECT * FROM Win32_PowerManagementEvent WHERE EventType = 4 OR EventType = 7 OR EventType = 18"
-    $subscription = Register-WmiEvent -Query $powerQuery -SourceIdentifier $sourceId
+    $powerSubscription = Register-WmiEvent -Query $powerQuery -SourceIdentifier $powerSourceId
     Write-WatchdogLog "registered Win32_PowerManagementEvent watcher: EventType = 4 suspend, EventType = 7 resume, EventType = 18 automatic resume"
+    $shutdownSubscription = Register-WmiEvent -Query "SELECT * FROM Win32_ComputerShutdownEvent" -SourceIdentifier $shutdownSourceId
+    Write-WatchdogLog "registered Win32_ComputerShutdownEvent watcher for shutdown/restart blanking"
 }
 
 $child = $null
@@ -90,7 +123,7 @@ try {
     while ($true) {
         $event = $null
         if (-not $NoPowerEvents) {
-            $event = Wait-Event -SourceIdentifier $sourceId -Timeout $PollSeconds
+            $event = Wait-Event -Timeout $PollSeconds
         }
         else {
             Start-Sleep -Seconds $PollSeconds
@@ -98,18 +131,29 @@ try {
 
         if ($event) {
             try {
-                $eventType = [int]$event.SourceEventArgs.NewEvent.EventType
-                Write-WatchdogLog ("power event type={0}" -f $eventType)
-                if ($eventType -eq 4) {
-                    Stop-Stack -Reason "suspend"
-                    Send-Blank -Reason "suspend"
+                if ($event.SourceIdentifier -eq $powerSourceId) {
+                    $eventType = [int]$event.SourceEventArgs.NewEvent.EventType
+                    Write-WatchdogLog ("power event type={0}" -f $eventType)
+                    if ($eventType -eq 4) {
+                        Stop-Stack -Reason "suspend"
+                        Send-Blank -Reason "suspend"
+                    }
+                    elseif ($eventType -eq 7 -or $eventType -eq 18) {
+                        $consecutiveFailures = 0
+                        Remove-Item -LiteralPath $pausedPath -Force -ErrorAction SilentlyContinue
+                        Stop-Stack -Reason "resume"
+                        Start-Sleep -Seconds $ResumeDelaySeconds
+                        $child = Start-Stack -Reason ("resume-event-{0}" -f $eventType)
+                    }
                 }
-                elseif ($eventType -eq 7 -or $eventType -eq 18) {
-                    $consecutiveFailures = 0
-                    Remove-Item -LiteralPath $pausedPath -Force -ErrorAction SilentlyContinue
-                    Stop-Stack -Reason "resume"
-                    Start-Sleep -Seconds $ResumeDelaySeconds
-                    $child = Start-Stack -Reason ("resume-event-{0}" -f $eventType)
+                elseif ($event.SourceIdentifier -eq $shutdownSourceId) {
+                    Write-WatchdogLog "computer shutdown/restart event detected"
+                    Stop-Stack -Reason "shutdown"
+                    Send-Blank -Reason "shutdown"
+                    break
+                }
+                else {
+                    Write-WatchdogLog ("ignored event source={0}" -f $event.SourceIdentifier)
                 }
             }
             finally {
@@ -131,9 +175,13 @@ try {
     }
 }
 finally {
-    if ($subscription) {
-        Unregister-Event -SourceIdentifier $sourceId -ErrorAction SilentlyContinue
+    foreach ($eventSourceId in @($powerSourceId, $shutdownSourceId)) {
+        Get-EventSubscriber -SourceIdentifier $eventSourceId -ErrorAction SilentlyContinue |
+            Unregister-Event -ErrorAction SilentlyContinue
+        Get-Event -SourceIdentifier $eventSourceId -ErrorAction SilentlyContinue |
+            Remove-Event -ErrorAction SilentlyContinue
     }
     Stop-Stack -Reason "watchdog-exit"
+    Send-Blank -Reason "watchdog-exit"
     Remove-Item -LiteralPath $watchdogPidPath -Force -ErrorAction SilentlyContinue
 }

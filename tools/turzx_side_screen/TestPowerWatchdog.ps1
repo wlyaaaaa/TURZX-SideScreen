@@ -7,6 +7,7 @@ $ErrorActionPreference = "Stop"
 
 $side = Join-Path $Root "tools\turzx_side_screen"
 $watchdog = Join-Path $side "StartSideScreenWatchdog.ps1"
+$watchdogLauncher = Join-Path $side "StartSideScreenWatchdog-Hidden.vbs"
 $stack = Join-Path $side "StartSideScreenStack.ps1"
 $stop = Join-Path $side "StopSideScreenStack.ps1"
 $blank = Join-Path $side "SendBlankFrame.ps1"
@@ -14,7 +15,7 @@ $installer = Join-Path $Root "scripts\install-startup-admin.ps1"
 $installerCmd = Join-Path $Root "scripts\install-startup-admin.cmd"
 $start = Join-Path $Root "scripts\start.ps1"
 
-foreach ($path in @($watchdog, $stop, $blank)) {
+foreach ($path in @($watchdog, $watchdogLauncher, $stop, $blank)) {
     if (!(Test-Path -LiteralPath $path)) {
         throw "Missing power management script: $path"
     }
@@ -58,8 +59,17 @@ foreach ($pattern in @("StartSideScreenWatchdog.ps1", '[switch]$Worker')) {
 }
 
 $installerText = Get-Content -Raw -LiteralPath $installer
-if ($installerText -notmatch [regex]::Escape("StartSideScreenWatchdog.ps1")) {
-    throw "Startup installer must point the scheduled task at StartSideScreenWatchdog.ps1."
+foreach ($pattern in @("wscript.exe", "StartSideScreenWatchdog-Hidden.vbs")) {
+    if ($installerText -notmatch [regex]::Escape($pattern)) {
+        throw "Startup installer must point the scheduled task at hidden watchdog launcher; missing: $pattern"
+    }
+}
+
+$watchdogLauncherText = Get-Content -Raw -LiteralPath $watchdogLauncher
+foreach ($pattern in @("StartSideScreenWatchdog.ps1", "shell.Run(command, 0, True)")) {
+    if ($watchdogLauncherText -notmatch [regex]::Escape($pattern)) {
+        throw "Hidden watchdog launcher missing expected pattern: $pattern"
+    }
 }
 
 $installerCmdText = Get-Content -Raw -LiteralPath $installerCmd

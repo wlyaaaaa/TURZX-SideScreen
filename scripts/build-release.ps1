@@ -37,7 +37,7 @@ try {
         $dst = Join-Path $toolDest $dir
         New-Item -ItemType Directory -Force -Path $dst | Out-Null
         Get-ChildItem -LiteralPath $src -File | Where-Object {
-            $_.Extension -in @(".ps1", ".cmd", ".py", ".cs", ".json", ".md")
+            $_.Extension -in @(".ps1", ".cmd", ".py", ".cs", ".json", ".md", ".vbs")
         } | ForEach-Object {
             Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $dst $_.Name) -Force
         }

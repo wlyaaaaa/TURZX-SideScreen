@@ -5,7 +5,7 @@ The recommended startup path is a Windows Scheduled Task:
 - Task name: `TURZX SideScreen`
 - Run level: `Highest`
 - Trigger: user logon
-- Action: `StartSideScreenWatchdog.ps1`
+- Action: `wscript.exe` -> `tools\turzx_side_screen\StartSideScreenWatchdog-Hidden.vbs`
 - Default port: `COM7`
 - Default refresh: `1000ms`
 

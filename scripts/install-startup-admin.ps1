@@ -17,8 +17,12 @@ if (-not $isAdmin) {
 
 $Root = (Resolve-Path $Root).Path
 $script = Join-Path $Root "tools\turzx_side_screen\StartSideScreenWatchdog.ps1"
+$launcher = Join-Path $Root "tools\turzx_side_screen\StartSideScreenWatchdog-Hidden.vbs"
 if (!(Test-Path -LiteralPath $script)) {
     throw "Missing watchdog script: $script"
+}
+if (!(Test-Path -LiteralPath $launcher)) {
+    throw "Missing watchdog hidden launcher: $launcher"
 }
 
 $checker = Join-Path $Root "scripts\check-runtime.ps1"
@@ -31,8 +35,8 @@ if (Test-Path -LiteralPath $checker) {
 
 $workingDir = Split-Path -Parent $script
 $action = New-ScheduledTaskAction `
-    -Execute "powershell.exe" `
-    -Argument ('-NoProfile -ExecutionPolicy Bypass -File "{0}" -Root "{1}" -Port {2} -IntervalMs {3}' -f $script, $Root, $Port, $IntervalMs) `
+    -Execute "wscript.exe" `
+    -Argument ('"{0}" -Root "{1}" -Port {2} -IntervalMs {3}' -f $launcher, $Root, $Port, $IntervalMs) `
     -WorkingDirectory $workingDir
 
 $trigger = New-ScheduledTaskTrigger -AtLogOn

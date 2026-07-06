@@ -7,7 +7,7 @@ The recommended startup path is a Windows Scheduled Task:
 - Trigger: user logon
 - Action: `StartSideScreenWatchdog.ps1`
 - Default port: `COM7`
-- Default refresh: `500ms`
+- Default refresh: `1000ms`
 
 This is not a `SYSTEM` account task. It runs as the current interactive user with `Highest` run level, which is usually safer for COM ports, user-profile Python installs, RTSS/Afterburner, and other desktop telemetry tools.
 

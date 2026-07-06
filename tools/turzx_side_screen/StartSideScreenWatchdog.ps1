@@ -1,7 +1,7 @@
 param(
     [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path,
     [string]$Port = "COM7",
-    [int]$IntervalMs = 500,
+    [int]$IntervalMs = 1000,
     [int]$ResumeDelaySeconds = 8,
     [int]$PollSeconds = 2,
     [int]$MaxConsecutiveFailures = 3,

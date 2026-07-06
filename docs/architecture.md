@@ -28,7 +28,7 @@ TURZX SideScreen is intentionally split into small local processes:
 
 ## Data Freshness
 
-- Main screen refresh target: `500ms`.
+- Main screen refresh target: `1000ms` by default, using differential frames to reduce USB/HID interference with RGB control software.
 - Top process ranking refresh: `3s`.
 - Weather refresh: cached and much slower.
 - Data trust log write: throttled to avoid high-frequency disk writes.

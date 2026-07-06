@@ -6,7 +6,7 @@ This project replaces the stock TURZX monitoring page with a custom local stack:
 
 - Python metrics agents for CPU, GPU, FPS, weather, disks, network, foreground app, and process ranking.
 - C# / GDI+ renderer for a dense 480x1920 dashboard.
-- COM7 differential frame streaming for smoother 0.5s updates.
+- COM7 differential frame streaming for low-interference 1s updates.
 - Data trust scoring and JSONL diagnostics.
 - Windows Scheduled Task startup support with highest privilege.
 
@@ -47,7 +47,7 @@ Or from PowerShell:
 
 ```powershell
 cd E:\TURZX-SideScreen
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1 -Port COM7 -IntervalMs 500
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1 -Port COM7 -IntervalMs 1000
 ```
 
 Install startup task:
@@ -59,7 +59,7 @@ install-startup.cmd
 Or from elevated PowerShell:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-startup-admin.ps1 -Port COM7 -IntervalMs 500
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-startup-admin.ps1 -Port COM7 -IntervalMs 1000
 ```
 
 Uninstall startup task:

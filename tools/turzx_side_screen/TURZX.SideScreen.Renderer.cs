@@ -113,12 +113,13 @@ namespace TURZX.SideScreen
             ForegroundAppSnapshot app = snapshot.ForegroundApp;
 
             DateTime now = DisplayNow();
-            string date = Safe(time == null ? null : time.Date, now.ToString("yyyy-MM-dd", Invariant));
-            string weekday = Safe(time == null ? null : time.Weekday, ChineseWeekday(now));
-            string clock = Safe(time == null ? null : time.Time, now.ToString("HH:mm:ss", Invariant));
+            TimeSnapshot headerTime = ResolveHeaderTime(time, now);
+            string date = headerTime.Date;
+            string weekday = headerTime.Weekday;
+            string clock = headerTime.Time;
             string weatherLine = FormatWeather(weather);
             string environmentLine = WeatherDetailLine(weather);
-            string update = FormatSeconds(First(time == null ? null : time.UpdateIntervalSeconds, snapshot.Health == null ? null : snapshot.Health.RefreshIntervalSeconds));
+            string update = FormatSeconds(First(snapshot.Health == null ? null : snapshot.Health.RefreshIntervalSeconds, headerTime.UpdateIntervalSeconds));
             List<string> stripParts = new List<string>();
             stripParts.Add(Safe(alert == null ? null : alert.Message, "系统正常"));
             string foreground = ForegroundName(app);
@@ -760,6 +761,23 @@ namespace TURZX.SideScreen
         private static float MeasureWidth(Graphics g, string text, Font font)
         {
             return g.MeasureString(Safe(text, ""), font, 2000, StringFormat.GenericTypographic).Width;
+        }
+
+        internal static TimeSnapshot ResolveHeaderTimeForTest(TimeSnapshot time, DateTime now)
+        {
+            return ResolveHeaderTime(time, now);
+        }
+
+        private static TimeSnapshot ResolveHeaderTime(TimeSnapshot time, DateTime now)
+        {
+            return new TimeSnapshot
+            {
+                Date = now.ToString("yyyy-MM-dd", Invariant),
+                Weekday = ChineseWeekday(now),
+                Time = now.ToString("HH:mm:ss", Invariant),
+                Timestamp = time == null ? null : time.Timestamp,
+                UpdateIntervalSeconds = time == null ? null : time.UpdateIntervalSeconds
+            };
         }
 
         private static TimeSnapshot CoerceTime(object value)

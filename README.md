@@ -6,7 +6,7 @@ This project replaces the stock TURZX monitoring page with a custom local stack:
 
 - Python metrics agents for CPU, GPU, FPS, weather, disks, network, foreground app, and process ranking.
 - C# / GDI+ renderer for a dense 480x1920 dashboard.
-- COM7 differential frame streaming for low-interference 1s updates.
+- COM7 differential frame streaming for low-interference 1s updates, with stale-data fallback so slow metrics reads do not stall the clock.
 - Data trust scoring and JSONL diagnostics.
 - Windows Scheduled Task startup support with highest privilege.
 

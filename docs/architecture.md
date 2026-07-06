@@ -18,7 +18,7 @@ TURZX SideScreen is intentionally split into small local processes:
    - Prevents heavy process sampling from blocking the 0.5s main snapshot loop.
 
 4. `TURZX.SideScreen.Stream.exe`
-   - Fetches snapshots.
+   - Fetches snapshots with a short timeout and reuses the last good snapshot if metrics are slow.
    - Renders 480x1920 bitmaps with `System.Drawing`.
    - Sends one full frame, then TURZX differential frames over COM7.
 
@@ -29,6 +29,8 @@ TURZX SideScreen is intentionally split into small local processes:
 ## Data Freshness
 
 - Main screen refresh target: `1000ms` by default, using differential frames to reduce USB/HID interference with RGB control software.
+- The header clock is rendered from local Beijing time in the C# renderer, not from the metrics snapshot cache.
+- Metrics fetches are capped at a short timeout; stale hardware values are preferable to a visibly stalled screen.
 - Top process ranking refresh: `3s`.
 - Weather refresh: cached and much slower.
 - Data trust log write: throttled to avoid high-frequency disk writes.

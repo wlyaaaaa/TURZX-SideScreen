@@ -29,6 +29,9 @@ if ($LASTEXITCODE -ne 0) { throw "TestShortcutScripts.ps1 failed" }
 powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root "scripts\TestRefreshDefaults.ps1") -Root $Root
 if ($LASTEXITCODE -ne 0) { throw "TestRefreshDefaults.ps1 failed" }
 
+powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $side "TestStreamCadence.ps1")
+if ($LASTEXITCODE -ne 0) { throw "TestStreamCadence.ps1 failed" }
+
 powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Root "scripts\test-public-release.ps1")
 if ($LASTEXITCODE -ne 0) { throw "test-public-release.ps1 failed" }
 

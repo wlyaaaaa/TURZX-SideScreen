@@ -12,6 +12,7 @@ namespace TURZX.SideScreen
     public static class SideScreenStreamApp
     {
         private const string DefaultMetricsUrl = "http://127.0.0.1:18765/snapshot";
+        private const int DefaultHttpTimeoutMs = 450;
 
         public static int Main(string[] args)
         {
@@ -38,7 +39,9 @@ namespace TURZX.SideScreen
             Stopwatch total = Stopwatch.StartNew();
             TurzxHelperSender.DiffSession diffSession = null;
             byte[] previousFrameData = null;
+            Snapshot lastSnapshot = null;
             long diffSequence = 0;
+            long previousFrameStartTicks = -1;
 
             Console.WriteLine("TURZX stream starting: frames=" + (options.FrameCount == 0 ? "infinite" : options.FrameCount.ToString()) +
                 ", intervalMs=" + options.IntervalMs +
@@ -57,12 +60,27 @@ namespace TURZX.SideScreen
                 while (options.FrameCount == 0 || frame < options.FrameCount)
                 {
                     frame++;
+                    long frameStartTicks = Stopwatch.GetTimestamp();
+                    long periodMs = previousFrameStartTicks < 0
+                        ? 0
+                        : TicksToMilliseconds(frameStartTicks - previousFrameStartTicks, Stopwatch.Frequency);
+                    previousFrameStartTicks = frameStartTicks;
                     Stopwatch frameWatch = Stopwatch.StartNew();
+                    string snapshotStatus = "none";
+                    long fetchMs = 0;
+                    long renderMs = 0;
                     try
                     {
-                        Snapshot snapshot = options.UseSample ? SampleSnapshot(frame) : FetchSnapshot(options);
+                        Stopwatch fetchWatch = Stopwatch.StartNew();
+                        Snapshot snapshot = FetchFrameSnapshot(options, frame, ref lastSnapshot, out snapshotStatus);
+                        fetchWatch.Stop();
+                        fetchMs = fetchWatch.ElapsedMilliseconds;
+                        ApplyStreamInterval(snapshot, options.IntervalMs);
+                        Stopwatch renderWatch = Stopwatch.StartNew();
                         using (Bitmap bitmap = SideScreenRenderer.Render(snapshot))
                         {
+                            renderWatch.Stop();
+                            renderMs = renderWatch.ElapsedMilliseconds;
                             if (!string.IsNullOrWhiteSpace(options.PreviewDir))
                             {
                                 Directory.CreateDirectory(options.PreviewDir);
@@ -123,10 +141,11 @@ namespace TURZX.SideScreen
                     }
 
                     frameWatch.Stop();
-                    int sleepMs = options.IntervalMs - (int)Math.Min(int.MaxValue, frameWatch.ElapsedMilliseconds);
+                    int sleepMs = ComputeSleepMilliseconds(frameStartTicks, options.IntervalMs, Stopwatch.GetTimestamp(), Stopwatch.Frequency);
+                    Console.WriteLine("frame " + frame + " timing: periodMs=" + periodMs + ", fetchMs=" + fetchMs + ", renderMs=" + renderMs + ", elapsedMs=" + frameWatch.ElapsedMilliseconds + ", sleepMs=" + sleepMs + ", data=" + snapshotStatus);
                     if (sleepMs > 0 && (options.FrameCount == 0 || frame < options.FrameCount))
                     {
-                        Thread.Sleep(sleepMs);
+                        SleepUntil(frameStartTicks + MillisecondsToStopwatchTicks(options.IntervalMs, Stopwatch.Frequency));
                     }
                 }
             }
@@ -145,6 +164,147 @@ namespace TURZX.SideScreen
 
             Console.WriteLine("TURZX stream stopped: renderedOrSent=" + sent + ", failed=" + failed + ", elapsedMs=" + total.ElapsedMilliseconds);
             return failed == 0 ? 0 : 1;
+        }
+
+        internal static Snapshot SelectSnapshotAfterFetchFailureForTest(Snapshot lastSnapshot, Exception error, out string status)
+        {
+            return SelectSnapshotAfterFetchFailure(lastSnapshot, error, out status);
+        }
+
+        internal static int ComputeSleepMillisecondsForTest(long frameStartTicks, int intervalMs, long nowTicks, long frequency)
+        {
+            return ComputeSleepMilliseconds(frameStartTicks, intervalMs, nowTicks, frequency);
+        }
+
+        internal static void ApplyStreamIntervalForTest(Snapshot snapshot, int intervalMs)
+        {
+            ApplyStreamInterval(snapshot, intervalMs);
+        }
+
+        private static void ApplyStreamInterval(Snapshot snapshot, int intervalMs)
+        {
+            if (snapshot == null)
+            {
+                return;
+            }
+
+            double seconds = Math.Max(0, intervalMs) / 1000.0;
+            if (snapshot.Health == null)
+            {
+                snapshot.Health = new HealthSnapshot();
+            }
+            snapshot.Health.RefreshIntervalSeconds = seconds;
+
+            TimeSnapshot time = snapshot.Time as TimeSnapshot;
+            if (time != null)
+            {
+                time.UpdateIntervalSeconds = seconds;
+            }
+        }
+
+        private static int ComputeSleepMilliseconds(long frameStartTicks, int intervalMs, long nowTicks, long frequency)
+        {
+            if (intervalMs <= 0 || frequency <= 0)
+            {
+                return 0;
+            }
+
+            long targetTicks = frameStartTicks + MillisecondsToStopwatchTicks(intervalMs, frequency);
+            long remainingTicks = targetTicks - nowTicks;
+            if (remainingTicks <= 0)
+            {
+                return 0;
+            }
+
+            double remainingMs = remainingTicks * 1000.0 / frequency;
+            return (int)Math.Ceiling(remainingMs);
+        }
+
+        private static void SleepUntil(long targetTicks)
+        {
+            while (true)
+            {
+                long nowTicks = Stopwatch.GetTimestamp();
+                long remainingTicks = targetTicks - nowTicks;
+                if (remainingTicks <= 0)
+                {
+                    return;
+                }
+
+                double remainingMs = remainingTicks * 1000.0 / Stopwatch.Frequency;
+                if (remainingMs > 4)
+                {
+                    Thread.Sleep(Math.Max(1, (int)Math.Floor(remainingMs) - 2));
+                }
+                else
+                {
+                    Thread.SpinWait(100);
+                }
+            }
+        }
+
+        private static long MillisecondsToStopwatchTicks(int milliseconds, long frequency)
+        {
+            if (milliseconds <= 0 || frequency <= 0)
+            {
+                return 0;
+            }
+            return (long)Math.Ceiling(milliseconds * (double)frequency / 1000.0);
+        }
+
+        private static long TicksToMilliseconds(long ticks, long frequency)
+        {
+            if (ticks <= 0 || frequency <= 0)
+            {
+                return 0;
+            }
+            return (long)Math.Round(ticks * 1000.0 / frequency);
+        }
+
+        private static Snapshot FetchFrameSnapshot(StreamOptions options, int frame, ref Snapshot lastSnapshot, out string status)
+        {
+            if (options.UseSample)
+            {
+                Snapshot sample = SampleSnapshot(frame);
+                lastSnapshot = sample;
+                status = "sample";
+                return sample;
+            }
+
+            try
+            {
+                Snapshot snapshot = FetchSnapshot(options);
+                lastSnapshot = snapshot;
+                status = "fresh";
+                return snapshot;
+            }
+            catch (Exception ex)
+            {
+                return SelectSnapshotAfterFetchFailure(lastSnapshot, ex, out status);
+            }
+        }
+
+        private static Snapshot SelectSnapshotAfterFetchFailure(Snapshot lastSnapshot, Exception error, out string status)
+        {
+            string errorName = error == null ? "Unknown" : error.GetType().Name;
+            if (lastSnapshot != null)
+            {
+                status = "stale:" + errorName;
+                return lastSnapshot;
+            }
+
+            status = "empty:" + errorName;
+            return new Snapshot
+            {
+                SchemaVersion = 1,
+                Sequence = 0,
+                Alert = new AlertSnapshot { Level = "warn", Message = "数据暂不可用" },
+                Health = new HealthSnapshot
+                {
+                    Status = "degraded",
+                    Detail = "采集超时，等待下一次数据"
+                }
+            };
         }
 
         private static Snapshot FetchSnapshot(StreamOptions options)
@@ -274,7 +434,7 @@ namespace TURZX.SideScreen
             public bool AltHelper;
             public int FrameCount = 0;
             public int IntervalMs = 3000;
-            public int HttpTimeoutMs = 5000;
+            public int HttpTimeoutMs = DefaultHttpTimeoutMs;
             public int SendTimeoutMs = 240000;
             public string MetricsUrl = DefaultMetricsUrl;
             public string Root = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", ".."));

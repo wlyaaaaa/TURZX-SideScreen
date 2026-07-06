@@ -8,6 +8,7 @@ $tests = @(
     "TestProtocolEncoding.ps1",
     "TestSideScreenApp.ps1",
     "TestHttpPipeline.ps1",
+    "TestStreamCadence.ps1",
     "TestVideoStream.ps1",
     "TestDiffProbe.ps1"
 )

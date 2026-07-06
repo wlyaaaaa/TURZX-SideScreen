@@ -5,7 +5,7 @@
 - Python `metrics_agent.py` 提供实时 JSON 快照，不直接读取 PostgreSQL。
 - C# renderer 用 `System.Drawing/GDI+` 画 480x1920 bitmap。
 - C# protocol 层只用 `RJCP.SerialPortStream` 推送 COM7，禁止回退普通 `SerialPort`。
-- 数据目标 0.5 秒刷新；屏幕发送根据差分大小节流，避免 COM 队列堆积。
+- 屏幕目标 1 秒刷新；数据采集可以更快，但渲染循环会复用上一帧数据，避免慢采集阻塞 COM 推屏。
 
 ## UI
 

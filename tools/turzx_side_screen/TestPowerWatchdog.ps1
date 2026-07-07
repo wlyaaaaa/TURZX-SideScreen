@@ -11,6 +11,8 @@ $watchdogLauncher = Join-Path $side "StartSideScreenWatchdog-Hidden.vbs"
 $stack = Join-Path $side "StartSideScreenStack.ps1"
 $stop = Join-Path $side "StopSideScreenStack.ps1"
 $blank = Join-Path $side "SendBlankFrame.ps1"
+$resume = Join-Path $side "RestartSideScreenAfterResume.ps1"
+$resumeLauncher = Join-Path $side "RestartSideScreenAfterResume-Hidden.vbs"
 $installer = Join-Path $Root "scripts\install-startup-admin.ps1"
 $installerCmd = Join-Path $Root "scripts\install-startup-admin.cmd"
 $start = Join-Path $Root "scripts\start.ps1"
@@ -35,7 +37,8 @@ foreach ($pattern in @(
     "SendBlankFrame.ps1",
     "StopSideScreenStack.ps1",
     "StartSideScreenStack.ps1",
-    "-Worker"
+    "-Worker",
+    "QuickBlankTimeoutMs"
 )) {
     if ($watchdogText -notmatch [regex]::Escape($pattern)) {
         throw "Watchdog missing expected pattern: $pattern"
@@ -51,6 +54,40 @@ foreach ($pattern in @(
     }
 }
 
+function Assert-OrderAfter {
+    param(
+        [string]$Text,
+        [string]$Anchor,
+        [string]$First,
+        [string]$Second,
+        [string]$Message
+    )
+
+    $anchorIndex = $Text.IndexOf($Anchor, [StringComparison]::Ordinal)
+    if ($anchorIndex -lt 0) {
+        throw "Missing order anchor: $Anchor"
+    }
+    $firstIndex = $Text.IndexOf($First, $anchorIndex, [StringComparison]::Ordinal)
+    $secondIndex = $Text.IndexOf($Second, $anchorIndex, [StringComparison]::Ordinal)
+    if ($firstIndex -lt 0 -or $secondIndex -lt 0 -or $firstIndex -gt $secondIndex) {
+        throw $Message
+    }
+}
+
+Assert-OrderAfter `
+    -Text $watchdogText `
+    -Anchor 'if ($eventType -eq 4)' `
+    -First 'Send-Blank -Reason "suspend"' `
+    -Second 'Stop-Stack -Reason "suspend"' `
+    -Message "Suspend handling must send the blank frame before stopping the stack."
+
+Assert-OrderAfter `
+    -Text $watchdogText `
+    -Anchor 'computer shutdown/restart event detected' `
+    -First 'Send-Blank -Reason "shutdown"' `
+    -Second 'Stop-Stack -Reason "shutdown"' `
+    -Message "Shutdown/sleep fallback handling must send the blank frame before stopping the stack."
+
 $stackText = Get-Content -Raw -LiteralPath $stack
 foreach ($pattern in @("StartSideScreenWatchdog.ps1", '[switch]$Worker')) {
     if ($stackText -notmatch [regex]::Escape($pattern)) {
@@ -59,9 +96,47 @@ foreach ($pattern in @("StartSideScreenWatchdog.ps1", '[switch]$Worker')) {
 }
 
 $installerText = Get-Content -Raw -LiteralPath $installer
-foreach ($pattern in @("wscript.exe", "StartSideScreenWatchdog-Hidden.vbs")) {
+foreach ($pattern in @(
+    "wscript.exe",
+    "StartSideScreenWatchdog-Hidden.vbs",
+    "TURZX SideScreen Resume",
+    "RestartSideScreenAfterResume.ps1",
+    "RestartSideScreenAfterResume-Hidden.vbs",
+    "DisallowStartIfOnBatteries",
+    "StopIfGoingOnBatteries"
+)) {
     if ($installerText -notmatch [regex]::Escape($pattern)) {
         throw "Startup installer must point the scheduled task at hidden watchdog launcher; missing: $pattern"
+    }
+}
+
+if (!(Test-Path -LiteralPath $resume)) {
+    throw "Missing resume recovery script: $resume"
+}
+if (!(Test-Path -LiteralPath $resumeLauncher)) {
+    throw "Missing resume recovery hidden launcher: $resumeLauncher"
+}
+
+$resumeText = Get-Content -Raw -LiteralPath $resume
+foreach ($pattern in @(
+    "StopSideScreenStack.ps1",
+    "StartSideScreenWatchdog-Hidden.vbs",
+    "restart-on-resume",
+    "DelaySeconds",
+    "pnputil.exe",
+    "/restart-device",
+    "VID_0525&PID_A4A7",
+    "Restart-TurzxUsbDevice"
+)) {
+    if ($resumeText -notmatch [regex]::Escape($pattern)) {
+        throw "Resume recovery script missing expected pattern: $pattern"
+    }
+}
+
+$resumeLauncherText = Get-Content -Raw -LiteralPath $resumeLauncher
+foreach ($pattern in @("RestartSideScreenAfterResume.ps1", "shell.Run(command, 0, True)", "DelaySeconds")) {
+    if ($resumeLauncherText -notmatch [regex]::Escape($pattern)) {
+        throw "Resume hidden launcher missing expected pattern: $pattern"
     }
 }
 
@@ -106,6 +181,15 @@ if ($stopText -notmatch [regex]::Escape("taskkill.exe")) {
 
 if ($stopText -notmatch [regex]::Escape("ParentProcessId")) {
     throw "Stop script must kill parent PowerShell processes for crashed stream children."
+}
+
+foreach ($pattern in @(
+    '*-File*StartSideScreenStack.ps1*',
+    '*-File*StartSideScreenWatchdog.ps1*'
+)) {
+    if ($stopText -notmatch [regex]::Escape($pattern)) {
+        throw "Stop script must only match real script entrypoints, not diagnostic commands containing the script name; missing: $pattern"
+    }
 }
 
 powershell -NoProfile -ExecutionPolicy Bypass -File $blank -Root $Root -DryRun | Out-Host

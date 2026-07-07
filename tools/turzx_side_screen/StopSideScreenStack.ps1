@@ -95,6 +95,7 @@ if (-not $SkipStackEntrypoint) {
     Stop-MatchingProcess -Reason "stack-script" -Predicate {
         param($p)
         ($p.Name -like "powershell*" -or $p.Name -like "pwsh*") -and
+            $p.CommandLine -like "*-File*StartSideScreenStack.ps1*" -and
             $p.CommandLine -like "*StartSideScreenStack.ps1*" -and
             $p.CommandLine -like $sidePattern
     }
@@ -104,6 +105,7 @@ if ($IncludeWatchdog) {
     Stop-MatchingProcess -Reason "watchdog-script" -Predicate {
         param($p)
         ($p.Name -like "powershell*" -or $p.Name -like "pwsh*") -and
+            $p.CommandLine -like "*-File*StartSideScreenWatchdog.ps1*" -and
             $p.CommandLine -like "*StartSideScreenWatchdog.ps1*" -and
             $p.CommandLine -like $sidePattern
     }

@@ -1,6 +1,7 @@
 param(
     [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path,
     [string]$TaskName = "TURZX SideScreen",
+    [string]$ResumeTaskName = "TURZX SideScreen Resume",
     [string]$Port = "COM7",
     [int]$IntervalMs = 1000,
     [switch]$DoNotDisableOldTasks
@@ -18,11 +19,19 @@ if (-not $isAdmin) {
 $Root = (Resolve-Path $Root).Path
 $script = Join-Path $Root "tools\turzx_side_screen\StartSideScreenWatchdog.ps1"
 $launcher = Join-Path $Root "tools\turzx_side_screen\StartSideScreenWatchdog-Hidden.vbs"
+$resumeScript = Join-Path $Root "tools\turzx_side_screen\RestartSideScreenAfterResume.ps1"
+$resumeLauncher = Join-Path $Root "tools\turzx_side_screen\RestartSideScreenAfterResume-Hidden.vbs"
 if (!(Test-Path -LiteralPath $script)) {
     throw "Missing watchdog script: $script"
 }
 if (!(Test-Path -LiteralPath $launcher)) {
     throw "Missing watchdog hidden launcher: $launcher"
+}
+if (!(Test-Path -LiteralPath $resumeScript)) {
+    throw "Missing resume recovery script: $resumeScript"
+}
+if (!(Test-Path -LiteralPath $resumeLauncher)) {
+    throw "Missing resume recovery hidden launcher: $resumeLauncher"
 }
 
 $checker = Join-Path $Root "scripts\check-runtime.ps1"
@@ -62,6 +71,18 @@ Register-ScheduledTask `
     -Description ("Start TURZX SideScreen from {0}" -f $Root) `
     -Force | Out-Null
 
+$resumeAction = 'wscript.exe "{0}" -Root "{1}" -Port {2} -IntervalMs {3}' -f $resumeLauncher, $Root, $Port, $IntervalMs
+$resumeEventQuery = "*[System[(Provider[@Name='Microsoft-Windows-Power-Troubleshooter'] and EventID=1) or (Provider[@Name='Microsoft-Windows-Kernel-Power'] and EventID=107)]]"
+$resumeCreateOutput = & schtasks.exe /Create /TN $ResumeTaskName /SC ONEVENT /EC System /MO $resumeEventQuery /TR $resumeAction /RL HIGHEST /F 2>&1
+if ($LASTEXITCODE -ne 0) {
+    $resumeCreateText = ($resumeCreateOutput | Out-String).Trim()
+    throw "Failed to register resume recovery task: $resumeCreateText"
+}
+$resumeTask = Get-ScheduledTask -TaskName $ResumeTaskName -ErrorAction Stop
+$resumeTask.Settings.DisallowStartIfOnBatteries = $false
+$resumeTask.Settings.StopIfGoingOnBatteries = $false
+Set-ScheduledTask -InputObject $resumeTask | Out-Null
+
 if (-not $DoNotDisableOldTasks) {
     foreach ($oldTask in @("TURZX WeatherFix", "TURZX_88inch_AdminStart")) {
         $existing = Get-ScheduledTask -TaskName $oldTask -ErrorAction SilentlyContinue
@@ -82,10 +103,11 @@ if (Test-Path -LiteralPath $shortcutScript) {
     }
 }
 
-Get-ScheduledTask | Where-Object { $_.TaskName -in @($TaskName, "TURZX WeatherFix", "TURZX_88inch_AdminStart") } |
+Get-ScheduledTask | Where-Object { $_.TaskName -in @($TaskName, $ResumeTaskName, "TURZX WeatherFix", "TURZX_88inch_AdminStart") } |
     Select-Object TaskName, State, @{Name="RunLevel";Expression={$_.Principal.RunLevel}},
         @{Name="Action";Expression={($_.Actions | ForEach-Object { $_.Execute + " " + $_.Arguments }) -join " | "}} |
     Format-List
 
 Write-Host "Installed highest-privilege startup task: $TaskName"
+Write-Host "Installed resume recovery task: $ResumeTaskName"
 Write-Host "Root: $Root"

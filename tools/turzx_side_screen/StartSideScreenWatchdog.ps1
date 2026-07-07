@@ -3,6 +3,7 @@ param(
     [string]$Port = "COM7",
     [int]$IntervalMs = 1000,
     [int]$ResumeDelaySeconds = 8,
+    [int]$QuickBlankTimeoutMs = 2500,
     [int]$PollSeconds = 2,
     [int]$MaxConsecutiveFailures = 3,
     [switch]$NoPowerEvents
@@ -62,10 +63,13 @@ function Start-Stack {
 }
 
 function Send-Blank {
-    param([string]$Reason)
-    Write-WatchdogLog ("send blank reason={0}" -f $Reason)
+    param(
+        [string]$Reason,
+        [int]$TimeoutMs = 15000
+    )
+    Write-WatchdogLog ("send blank reason={0} timeoutMs={1}" -f $Reason, $TimeoutMs)
     try {
-        powershell -NoProfile -ExecutionPolicy Bypass -File $blankScript -Root $Root -Port $Port -TimeoutMs 15000 | Out-Null
+        powershell -NoProfile -ExecutionPolicy Bypass -File $blankScript -Root $Root -Port $Port -TimeoutMs $TimeoutMs | Out-Null
     }
     catch {
         Write-WatchdogLog ("blank failed: {0}" -f $_.Exception.Message)
@@ -81,6 +85,7 @@ function Stop-OtherWatchdogs {
         Where-Object {
             $_.ProcessId -ne $PID -and
             ($_.Name -like "powershell*" -or $_.Name -like "pwsh*") -and
+            $_.CommandLine -like "*-File*StartSideScreenWatchdog.ps1*" -and
             $_.CommandLine -like "*StartSideScreenWatchdog.ps1*" -and
             $_.CommandLine -like $rootPattern
         } |
@@ -135,8 +140,8 @@ try {
                     $eventType = [int]$event.SourceEventArgs.NewEvent.EventType
                     Write-WatchdogLog ("power event type={0}" -f $eventType)
                     if ($eventType -eq 4) {
+                        Send-Blank -Reason "suspend" -TimeoutMs $QuickBlankTimeoutMs
                         Stop-Stack -Reason "suspend"
-                        Send-Blank -Reason "suspend"
                     }
                     elseif ($eventType -eq 7 -or $eventType -eq 18) {
                         $consecutiveFailures = 0
@@ -148,8 +153,8 @@ try {
                 }
                 elseif ($event.SourceIdentifier -eq $shutdownSourceId) {
                     Write-WatchdogLog "computer shutdown/restart event detected"
+                    Send-Blank -Reason "shutdown" -TimeoutMs $QuickBlankTimeoutMs
                     Stop-Stack -Reason "shutdown"
-                    Send-Blank -Reason "shutdown"
                     break
                 }
                 else {
@@ -182,6 +187,6 @@ finally {
             Remove-Event -ErrorAction SilentlyContinue
     }
     Stop-Stack -Reason "watchdog-exit"
-    Send-Blank -Reason "watchdog-exit"
+    Send-Blank -Reason "watchdog-exit" -TimeoutMs $QuickBlankTimeoutMs
     Remove-Item -LiteralPath $watchdogPidPath -Force -ErrorAction SilentlyContinue
 }

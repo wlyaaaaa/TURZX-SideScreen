@@ -3,6 +3,7 @@
     [string]$Port = "COM7",
     [int]$IntervalMs = 3000,
     [int]$Frames = 0,
+    [int]$MaxConsecutiveSendFailures = 5,
     [switch]$Sample,
     [switch]$DryRun,
     [switch]$Diff,
@@ -81,7 +82,7 @@ if (!$Sample -and !$DryRun) {
 }
 
 try {
-    $argsList = @("--root", $Root, "--port", $Port, "--interval-ms", [string]$IntervalMs, "--frames", [string]$Frames, "--preview-dir", $previewDir)
+    $argsList = @("--root", $Root, "--port", $Port, "--interval-ms", [string]$IntervalMs, "--frames", [string]$Frames, "--max-consecutive-send-failures", [string]$MaxConsecutiveSendFailures, "--preview-dir", $previewDir)
     if ($Sample) { $argsList += "--sample" }
     if ($DryRun) { $argsList += "--dry-run" }
     if ($Diff) { $argsList += "--diff" }

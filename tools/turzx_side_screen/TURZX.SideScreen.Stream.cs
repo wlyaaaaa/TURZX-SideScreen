@@ -5,6 +5,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
 using System.Runtime.Serialization.Json;
+using System.Text;
 using System.Threading;
 
 namespace TURZX.SideScreen
@@ -42,6 +43,7 @@ namespace TURZX.SideScreen
             Snapshot lastSnapshot = null;
             long diffSequence = 0;
             long previousFrameStartTicks = -1;
+            int consecutiveSendFailures = 0;
 
             Console.WriteLine("TURZX stream starting: frames=" + (options.FrameCount == 0 ? "infinite" : options.FrameCount.ToString()) +
                 ", intervalMs=" + options.IntervalMs +
@@ -69,6 +71,9 @@ namespace TURZX.SideScreen
                     string snapshotStatus = "none";
                     long fetchMs = 0;
                     long renderMs = 0;
+                    bool sendAttempted = false;
+                    string frameStatus = "ok";
+                    string frameError = null;
                     try
                     {
                         Stopwatch fetchWatch = Stopwatch.StartNew();
@@ -91,10 +96,12 @@ namespace TURZX.SideScreen
                             if (options.DryRun)
                             {
                                 sent++;
+                                consecutiveSendFailures = 0;
                                 Console.WriteLine("frame " + frame + " rendered in " + frameWatch.ElapsedMilliseconds + "ms");
                             }
                             else if (options.UseDiff)
                             {
+                                sendAttempted = true;
                                 Stopwatch sendWatch = Stopwatch.StartNew();
                                 byte[] currentFrameData = diffSession.Convert(bitmap);
                                 if (previousFrameData == null)
@@ -102,6 +109,7 @@ namespace TURZX.SideScreen
                                     diffSession.SendFull(currentFrameData);
                                     sendWatch.Stop();
                                     sent++;
+                                    consecutiveSendFailures = 0;
                                     Console.WriteLine("frame " + frame + " FULL sent in " + sendWatch.ElapsedMilliseconds + "ms: frameBytes=" + currentFrameData.Length);
                                 }
                                 else
@@ -110,6 +118,7 @@ namespace TURZX.SideScreen
                                     int result = diffSession.SendDiff(previousFrameData, currentFrameData, sequence, false, false, options.AltHelper);
                                     sendWatch.Stop();
                                     sent++;
+                                    consecutiveSendFailures = 0;
                                     Console.WriteLine("frame " + frame + " DIFF sent in " + sendWatch.ElapsedMilliseconds + "ms: seq=" + sequence + ", result=" + result);
                                 }
 
@@ -117,6 +126,7 @@ namespace TURZX.SideScreen
                             }
                             else
                             {
+                                sendAttempted = true;
                                 string message;
                                 Stopwatch sendWatch = Stopwatch.StartNew();
                                 bool ok = TurzxHelperSender.SendBitmap(options.Root, options.Port, bitmap, options.DevCode, options.SendTimeoutMs, out message);
@@ -124,11 +134,22 @@ namespace TURZX.SideScreen
                                 if (!ok)
                                 {
                                     failed++;
+                                    consecutiveSendFailures++;
+                                    frameStatus = "send_failed";
+                                    frameError = message;
                                     Console.WriteLine("frame " + frame + " send failed after " + sendWatch.ElapsedMilliseconds + "ms: " + message);
+                                    if (ShouldAbortAfterConsecutiveSendFailures(consecutiveSendFailures, options.MaxConsecutiveSendFailures))
+                                    {
+                                        frameWatch.Stop();
+                                        WriteHeartbeat(options, frame, sent, failed, consecutiveSendFailures, periodMs, fetchMs, renderMs, frameWatch.ElapsedMilliseconds, 0, snapshotStatus, "fatal", message);
+                                        Console.Error.WriteLine("stream fatal: consecutive send failures reached " + consecutiveSendFailures + "; exiting so watchdog can reopen " + options.Port);
+                                        return 1;
+                                    }
                                 }
                                 else
                                 {
                                     sent++;
+                                    consecutiveSendFailures = 0;
                                     Console.WriteLine("frame " + frame + " sent in " + sendWatch.ElapsedMilliseconds + "ms: " + message);
                                 }
                             }
@@ -137,11 +158,26 @@ namespace TURZX.SideScreen
                     catch (Exception ex)
                     {
                         failed++;
-                        Console.WriteLine("frame " + frame + " exception: " + ex.GetType().Name + ": " + ex.Message);
+                        frameStatus = "exception";
+                        frameError = DescribeException(ex);
+                        Console.WriteLine("frame " + frame + " exception: " + frameError);
+                        if (sendAttempted || IsLikelyDeviceSendFailure(ex))
+                        {
+                            consecutiveSendFailures++;
+                            Console.WriteLine("frame " + frame + " consecutiveSendFailures=" + consecutiveSendFailures);
+                            if (ShouldAbortAfterConsecutiveSendFailures(consecutiveSendFailures, options.MaxConsecutiveSendFailures))
+                            {
+                                frameWatch.Stop();
+                                WriteHeartbeat(options, frame, sent, failed, consecutiveSendFailures, periodMs, fetchMs, renderMs, frameWatch.ElapsedMilliseconds, 0, snapshotStatus, "fatal", frameError);
+                                Console.Error.WriteLine("stream fatal: consecutive send failures reached " + consecutiveSendFailures + "; exiting so watchdog can reopen " + options.Port);
+                                return 1;
+                            }
+                        }
                     }
 
                     frameWatch.Stop();
                     int sleepMs = ComputeSleepMilliseconds(frameStartTicks, options.IntervalMs, Stopwatch.GetTimestamp(), Stopwatch.Frequency);
+                    WriteHeartbeat(options, frame, sent, failed, consecutiveSendFailures, periodMs, fetchMs, renderMs, frameWatch.ElapsedMilliseconds, sleepMs, snapshotStatus, frameStatus, frameError);
                     Console.WriteLine("frame " + frame + " timing: periodMs=" + periodMs + ", fetchMs=" + fetchMs + ", renderMs=" + renderMs + ", elapsedMs=" + frameWatch.ElapsedMilliseconds + ", sleepMs=" + sleepMs + ", data=" + snapshotStatus);
                     if (sleepMs > 0 && (options.FrameCount == 0 || frame < options.FrameCount))
                     {
@@ -151,7 +187,7 @@ namespace TURZX.SideScreen
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine("stream fatal: " + ex.GetType().Name + ": " + ex.Message);
+                Console.Error.WriteLine("stream fatal: " + DescribeException(ex));
                 return 1;
             }
             finally
@@ -179,6 +215,21 @@ namespace TURZX.SideScreen
         internal static void ApplyStreamIntervalForTest(Snapshot snapshot, int intervalMs)
         {
             ApplyStreamInterval(snapshot, intervalMs);
+        }
+
+        internal static bool IsLikelyDeviceSendFailureForTest(Exception error)
+        {
+            return IsLikelyDeviceSendFailure(error);
+        }
+
+        internal static bool ShouldAbortAfterConsecutiveSendFailuresForTest(int consecutiveFailures, int maxConsecutiveFailures)
+        {
+            return ShouldAbortAfterConsecutiveSendFailures(consecutiveFailures, maxConsecutiveFailures);
+        }
+
+        internal static string DescribeExceptionForTest(Exception error)
+        {
+            return DescribeException(error);
         }
 
         private static void ApplyStreamInterval(Snapshot snapshot, int intervalMs)
@@ -259,6 +310,188 @@ namespace TURZX.SideScreen
                 return 0;
             }
             return (long)Math.Round(ticks * 1000.0 / frequency);
+        }
+
+        private static bool ShouldAbortAfterConsecutiveSendFailures(int consecutiveFailures, int maxConsecutiveFailures)
+        {
+            return maxConsecutiveFailures > 0 && consecutiveFailures >= maxConsecutiveFailures;
+        }
+
+        private static bool IsLikelyDeviceSendFailure(Exception error)
+        {
+            Exception current = error;
+            while (current != null)
+            {
+                string text = (current.GetType().FullName ?? string.Empty) + " " + (current.Message ?? string.Empty);
+                if (ContainsOrdinalIgnoreCase(text, "Device Error") ||
+                    ContainsOrdinalIgnoreCase(text, "SendReg false") ||
+                    ContainsOrdinalIgnoreCase(text, "serial") ||
+                    ContainsOrdinalIgnoreCase(text, "COM7") ||
+                    ContainsOrdinalIgnoreCase(text, "RJCP") ||
+                    ContainsOrdinalIgnoreCase(text, "UnauthorizedAccessException") ||
+                    ContainsOrdinalIgnoreCase(text, "IOException"))
+                {
+                    return true;
+                }
+
+                current = current.InnerException;
+            }
+
+            return false;
+        }
+
+        private static bool ContainsOrdinalIgnoreCase(string value, string search)
+        {
+            return value != null && value.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static string DescribeException(Exception error)
+        {
+            if (error == null)
+            {
+                return "Unknown exception";
+            }
+
+            string result = error.GetType().Name + ": " + error.Message;
+            Exception current = error.InnerException;
+            while (current != null)
+            {
+                result += " | " + current.GetType().Name + ": " + current.Message;
+                current = current.InnerException;
+            }
+
+            return result;
+        }
+
+        private static void WriteHeartbeat(
+            StreamOptions options,
+            int frame,
+            int sent,
+            int failed,
+            int consecutiveSendFailures,
+            long periodMs,
+            long fetchMs,
+            long renderMs,
+            long elapsedMs,
+            int sleepMs,
+            string snapshotStatus,
+            string frameStatus,
+            string frameError)
+        {
+            if (options == null || string.IsNullOrWhiteSpace(options.PreviewDir))
+            {
+                return;
+            }
+
+            try
+            {
+                Directory.CreateDirectory(options.PreviewDir);
+                string path = Path.Combine(options.PreviewDir, "stream-heartbeat.json");
+                StringBuilder json = new StringBuilder();
+                json.AppendLine("{");
+                AppendJsonProperty(json, "utc", DateTime.UtcNow.ToString("o"), true);
+                AppendJsonProperty(json, "port", options.Port, true);
+                AppendJsonProperty(json, "status", frameStatus, true);
+                AppendJsonProperty(json, "snapshot_status", snapshotStatus, true);
+                AppendJsonProperty(json, "error", frameError, true);
+                AppendJsonProperty(json, "frame", frame, true);
+                AppendJsonProperty(json, "sent", sent, true);
+                AppendJsonProperty(json, "failed", failed, true);
+                AppendJsonProperty(json, "consecutive_send_failures", consecutiveSendFailures, true);
+                AppendJsonProperty(json, "period_ms", periodMs, true);
+                AppendJsonProperty(json, "fetch_ms", fetchMs, true);
+                AppendJsonProperty(json, "render_ms", renderMs, true);
+                AppendJsonProperty(json, "elapsed_ms", elapsedMs, true);
+                AppendJsonProperty(json, "sleep_ms", sleepMs, false);
+                json.AppendLine("}");
+                File.WriteAllText(path, json.ToString(), Encoding.UTF8);
+            }
+            catch
+            {
+                // Heartbeat is diagnostic only; never break rendering or device sends.
+            }
+        }
+
+        private static void AppendJsonProperty(StringBuilder json, string name, string value, bool comma)
+        {
+            json.Append("  \"");
+            json.Append(JsonEscape(name));
+            json.Append("\": ");
+            if (value == null)
+            {
+                json.Append("null");
+            }
+            else
+            {
+                json.Append("\"");
+                json.Append(JsonEscape(value));
+                json.Append("\"");
+            }
+
+            if (comma)
+            {
+                json.Append(",");
+            }
+
+            json.AppendLine();
+        }
+
+        private static void AppendJsonProperty(StringBuilder json, string name, long value, bool comma)
+        {
+            json.Append("  \"");
+            json.Append(JsonEscape(name));
+            json.Append("\": ");
+            json.Append(value);
+            if (comma)
+            {
+                json.Append(",");
+            }
+
+            json.AppendLine();
+        }
+
+        private static string JsonEscape(string value)
+        {
+            if (value == null)
+            {
+                return string.Empty;
+            }
+
+            StringBuilder escaped = new StringBuilder(value.Length);
+            foreach (char ch in value)
+            {
+                switch (ch)
+                {
+                    case '\\':
+                        escaped.Append("\\\\");
+                        break;
+                    case '"':
+                        escaped.Append("\\\"");
+                        break;
+                    case '\r':
+                        escaped.Append("\\r");
+                        break;
+                    case '\n':
+                        escaped.Append("\\n");
+                        break;
+                    case '\t':
+                        escaped.Append("\\t");
+                        break;
+                    default:
+                        if (ch < 32)
+                        {
+                            escaped.Append("\\u");
+                            escaped.Append(((int)ch).ToString("x4"));
+                        }
+                        else
+                        {
+                            escaped.Append(ch);
+                        }
+                        break;
+                }
+            }
+
+            return escaped.ToString();
         }
 
         private static Snapshot FetchFrameSnapshot(StreamOptions options, int frame, ref Snapshot lastSnapshot, out string status)
@@ -421,7 +654,7 @@ namespace TURZX.SideScreen
 
         private static void PrintUsage()
         {
-            Console.WriteLine("TURZX.SideScreen.Stream.exe [--sample] [--dry-run] [--diff] [--alt-helper] [--frames N] [--interval-ms 1000] [--metrics-url URL] [--root TURZX_ROOT] [--port COM7]");
+            Console.WriteLine("TURZX.SideScreen.Stream.exe [--sample] [--dry-run] [--diff] [--alt-helper] [--frames N] [--interval-ms 1000] [--max-consecutive-send-failures 5] [--metrics-url URL] [--root TURZX_ROOT] [--port COM7]");
             Console.WriteLine("frames=0 means infinite. --diff sends one full baseline frame, then command-204 differential frames.");
         }
 
@@ -436,6 +669,7 @@ namespace TURZX.SideScreen
             public int IntervalMs = 3000;
             public int HttpTimeoutMs = DefaultHttpTimeoutMs;
             public int SendTimeoutMs = 240000;
+            public int MaxConsecutiveSendFailures = 5;
             public string MetricsUrl = DefaultMetricsUrl;
             public string Root = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", ".."));
             public string Port = "COM7";
@@ -457,6 +691,7 @@ namespace TURZX.SideScreen
                     else if (arg == "--interval-ms") options.IntervalMs = int.Parse(Next(args, ref i, arg));
                     else if (arg == "--timeout-ms") options.HttpTimeoutMs = int.Parse(Next(args, ref i, arg));
                     else if (arg == "--send-timeout-ms") options.SendTimeoutMs = int.Parse(Next(args, ref i, arg));
+                    else if (arg == "--max-consecutive-send-failures") options.MaxConsecutiveSendFailures = int.Parse(Next(args, ref i, arg));
                     else if (arg == "--metrics-url") options.MetricsUrl = Next(args, ref i, arg);
                     else if (arg == "--root") options.Root = Next(args, ref i, arg);
                     else if (arg == "--port") options.Port = Next(args, ref i, arg);
@@ -467,6 +702,7 @@ namespace TURZX.SideScreen
 
                 if (options.FrameCount < 0) throw new ArgumentOutOfRangeException("frames");
                 if (options.IntervalMs < 0) throw new ArgumentOutOfRangeException("interval-ms");
+                if (options.MaxConsecutiveSendFailures < 0) throw new ArgumentOutOfRangeException("max-consecutive-send-failures");
                 return options;
             }
 

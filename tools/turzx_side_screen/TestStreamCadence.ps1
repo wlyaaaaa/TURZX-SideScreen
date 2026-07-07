@@ -72,6 +72,24 @@ public static class TestStreamCadenceProgram
             out fallbackStatus);
         Equal("missing cache returns empty snapshot sequence", 0L, empty.Sequence.Value);
         StartsWith("missing cache status marks empty data", "empty:TimeoutException", fallbackStatus);
+
+        Equal("device error is classified as send failure", true,
+            SideScreenStreamApp.IsLikelyDeviceSendFailureForTest(
+                new InvalidOperationException("SendReg false:204 Device Error")));
+        Equal("generic render error is not classified as device send failure", false,
+            SideScreenStreamApp.IsLikelyDeviceSendFailureForTest(
+                new InvalidOperationException("Font render failed")));
+        Equal("consecutive send failures below threshold continue", false,
+            SideScreenStreamApp.ShouldAbortAfterConsecutiveSendFailuresForTest(2, 3));
+        Equal("consecutive send failures at threshold abort", true,
+            SideScreenStreamApp.ShouldAbortAfterConsecutiveSendFailuresForTest(3, 3));
+        Equal("disabled send failure threshold never aborts", false,
+            SideScreenStreamApp.ShouldAbortAfterConsecutiveSendFailuresForTest(99, 0));
+        string described = SideScreenStreamApp.DescribeExceptionForTest(
+            new System.Reflection.TargetInvocationException(
+                new InvalidOperationException("inner device detail")));
+        Contains("target invocation description names wrapper", "TargetInvocationException:", described);
+        Contains("target invocation description unwraps inner exception", "InvalidOperationException: inner device detail", described);
     }
 
     private static void Equal(string name, object expected, object actual)
@@ -95,6 +113,14 @@ public static class TestStreamCadenceProgram
         if (actual == null || !actual.StartsWith(expectedPrefix, StringComparison.Ordinal))
         {
             throw new Exception(name + ": expected prefix " + expectedPrefix + ", got " + actual);
+        }
+    }
+
+    private static void Contains(string name, string expectedText, string actual)
+    {
+        if (actual == null || actual.IndexOf(expectedText, StringComparison.Ordinal) < 0)
+        {
+            throw new Exception(name + ": expected text " + expectedText + ", got " + actual);
         }
     }
 }

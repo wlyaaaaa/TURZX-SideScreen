@@ -46,7 +46,7 @@ start-side-screen.cmd
 Or from PowerShell:
 
 ```powershell
-cd E:\TURZX-SideScreen
+cd E:\Projects\Tools\TURZX-SideScreen
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1 -Port COM7 -IntervalMs 1000
 ```
 

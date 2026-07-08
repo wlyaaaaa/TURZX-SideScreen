@@ -48,6 +48,6 @@ time, weather, alert, foreground_app, cpu, gpu, fps, memory, disks, network, top
 
 ## Safety
 
-- 不修改 `E:\TimeAudit` 原项目。
+- 不修改 `E:\Projects\Tools\TimeAudit` 原项目。
 - 不上传 Google Drive，直到用户明确说最终完成。
 - 实机推屏前先停掉占用 COM7 的 TURZX 原程序。

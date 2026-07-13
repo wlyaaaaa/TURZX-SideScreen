@@ -38,7 +38,9 @@ foreach ($pattern in @(
     "StopSideScreenStack.ps1",
     "StartSideScreenStack.ps1",
     "-Worker",
-    "QuickBlankTimeoutMs"
+    "QuickBlankTimeoutMs",
+    "Global\TURZX.SideScreen.Watchdog",
+    "duplicate watchdog"
 )) {
     if ($watchdogText -notmatch [regex]::Escape($pattern)) {
         throw "Watchdog missing expected pattern: $pattern"

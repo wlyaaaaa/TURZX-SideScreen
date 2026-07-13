@@ -36,7 +36,6 @@ function Write-WatchdogLog {
     Add-Content -LiteralPath $logPath -Value $line -Encoding UTF8
     Write-Host $line
 }
-
 function Stop-Stack {
     param([string]$Reason)
     Write-WatchdogLog ("stop stack reason={0}" -f $Reason)
@@ -98,6 +97,23 @@ function Stop-OtherWatchdogs {
     if ($stopped -gt 0) {
         Start-Sleep -Milliseconds 1500
     }
+}
+
+$watchdogMutexName = "Global\TURZX.SideScreen.Watchdog"
+$watchdogMutexCreated = $false
+$watchdogMutex = $null
+try {
+    $watchdogMutex = New-Object System.Threading.Mutex($true, $watchdogMutexName, [ref]$watchdogMutexCreated)
+}
+catch {
+    Write-WatchdogLog ("failed to create watchdog mutex: {0}" -f $_.Exception.Message)
+    exit 1
+}
+
+if (-not $watchdogMutexCreated) {
+    Write-WatchdogLog "duplicate watchdog detected; keeping existing instance"
+    $watchdogMutex.Dispose()
+    exit 0
 }
 
 foreach ($eventSourceId in @($powerSourceId, $shutdownSourceId)) {
@@ -189,4 +205,8 @@ finally {
     Stop-Stack -Reason "watchdog-exit"
     Send-Blank -Reason "watchdog-exit" -TimeoutMs $QuickBlankTimeoutMs
     Remove-Item -LiteralPath $watchdogPidPath -Force -ErrorAction SilentlyContinue
+    if ($watchdogMutex) {
+        $watchdogMutex.ReleaseMutex()
+        $watchdogMutex.Dispose()
+    }
 }

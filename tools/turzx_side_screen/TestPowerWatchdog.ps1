@@ -40,7 +40,12 @@ foreach ($pattern in @(
     "-Worker",
     "QuickBlankTimeoutMs",
     "Global\TURZX.SideScreen.Watchdog",
-    "duplicate watchdog"
+    "duplicate watchdog",
+    "HeartbeatStaleSeconds",
+    "stream-heartbeat.json",
+    "heartbeat unhealthy",
+    "restart-on-start.flag",
+    "restart request detected"
 )) {
     if ($watchdogText -notmatch [regex]::Escape($pattern)) {
         throw "Watchdog missing expected pattern: $pattern"
@@ -89,6 +94,13 @@ Assert-OrderAfter `
     -First 'Send-Blank -Reason "shutdown"' `
     -Second 'Stop-Stack -Reason "shutdown"' `
     -Message "Shutdown/sleep fallback handling must send the blank frame before stopping the stack."
+
+Assert-OrderAfter `
+    -Text $watchdogText `
+    -Anchor 'if (-not $watchdogMutexCreated)' `
+    -First 'exit 0' `
+    -Second 'Set-Content -LiteralPath $watchdogPidPath -Value $PID' `
+    -Message "A duplicate watchdog must exit before the live watchdog PID file is written."
 
 $stackText = Get-Content -Raw -LiteralPath $stack
 foreach ($pattern in @("StartSideScreenWatchdog.ps1", '[switch]$Worker')) {
@@ -166,6 +178,14 @@ foreach ($pattern in @("schtasks.exe", "TURZX SideScreen", "StartSideScreenWatch
     }
 }
 
+$streamStart = Join-Path $side "StartVideoStream.ps1"
+$streamStartText = Get-Content -Raw -LiteralPath $streamStart
+foreach ($pattern in @("Wait-MetricsEndpointReady", "metrics endpoint did not become ready")) {
+    if ($streamStartText -notmatch [regex]::Escape($pattern)) {
+        throw "Stream startup must wait for a real metrics response before sending the first full frame; missing: $pattern"
+    }
+}
+
 $stopText = Get-Content -Raw -LiteralPath $stop
 if ($stopText -notmatch [regex]::Escape("SkipStackEntrypoint")) {
     throw "Stop script must support SkipStackEntrypoint for elevated self-cleanup."
@@ -175,6 +195,10 @@ foreach ($pattern in @("restart-on-start.flag", "StopSideScreenStack.ps1", "Skip
     if ($stackText -notmatch [regex]::Escape($pattern)) {
         throw "Stack entrypoint missing elevated cleanup pattern: $pattern"
     }
+}
+
+if ($stackText -notmatch [regex]::Escape("-FullResyncEveryFrames")) {
+    throw "Stack worker must enable periodic full-frame transport resynchronization."
 }
 
 if ($stopText -notmatch [regex]::Escape("taskkill.exe")) {

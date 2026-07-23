@@ -85,6 +85,14 @@ public static class TestStreamCadenceProgram
             SideScreenStreamApp.ShouldAbortAfterConsecutiveSendFailuresForTest(3, 3));
         Equal("disabled send failure threshold never aborts", false,
             SideScreenStreamApp.ShouldAbortAfterConsecutiveSendFailuresForTest(99, 0));
+        Equal("first differential frame is always a full baseline", true,
+            SideScreenStreamApp.ShouldSendFullFrameForTest(1, false, 300));
+        Equal("ordinary differential frame stays incremental", false,
+            SideScreenStreamApp.ShouldSendFullFrameForTest(299, true, 300));
+        Equal("configured boundary sends a periodic full baseline", true,
+            SideScreenStreamApp.ShouldSendFullFrameForTest(300, true, 300));
+        Equal("zero disables periodic full baselines after startup", false,
+            SideScreenStreamApp.ShouldSendFullFrameForTest(300, true, 0));
         string described = SideScreenStreamApp.DescribeExceptionForTest(
             new System.Reflection.TargetInvocationException(
                 new InvalidOperationException("inner device detail")));

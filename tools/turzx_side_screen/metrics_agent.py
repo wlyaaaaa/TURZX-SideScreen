@@ -31,6 +31,7 @@ SCHEMA_VERSION = 1
 CPU_INITIAL_SAMPLE_WAIT_SECONDS = 0.05
 GPU_CACHE_TTL_SECONDS = 1.0
 GPU_FAILURE_CACHE_TTL_SECONDS = 3.0
+GPU_LAST_GOOD_MAX_AGE_SECONDS = 30.0
 NVIDIA_SMI_TIMEOUT_SECONDS = 0.8
 WEATHER_CACHE_TTL_SECONDS = 600.0
 WEATHER_FAILURE_CACHE_TTL_SECONDS = 30.0
@@ -57,6 +58,8 @@ DATA_TRUST_LOG_INTERVAL_SECONDS = 5.0
 _sequence = 0
 _gpu_cache_value: dict[str, Any] | None = None
 _gpu_cache_expires_at = 0.0
+_gpu_last_good_value: dict[str, Any] | None = None
+_gpu_last_good_at = 0.0
 _lhm_cache_value: dict[str, Any] | None = None
 _lhm_cache_expires_at = 0.0
 _lhm_cache_lock = threading.Lock()
@@ -386,10 +389,17 @@ def _trust_gpu(gpu: Any) -> dict[str, Any]:
             missing.append(key)
             score -= 4
     source = _empty_to_none(data.get("source")) or "fallback"
+    stale = source.endswith("+stale") or data.get("status") == "stale"
     fallback = _is_fallback_source(source)
     if fallback:
         score = min(score, 75)
-    return _trust_item("gpu", "GPU", score, source, missing, fallback, _detail_from_missing("GPU", missing))
+    if stale:
+        score = min(score, 85)
+    item = _trust_item("gpu", "GPU", score, source, missing, fallback, _detail_from_missing("GPU", missing))
+    if stale:
+        item["status"] = "stale"
+        item["detail"] = "GPU 探针短暂失败，使用最近可信值"
+    return item
 
 
 def _trust_fps(fps: Any) -> dict[str, Any]:
@@ -915,7 +925,7 @@ def read_cpu_snapshot() -> dict[str, Any]:
 
 
 def read_gpu_snapshot() -> dict[str, Any]:
-    global _gpu_cache_expires_at, _gpu_cache_value
+    global _gpu_cache_expires_at, _gpu_cache_value, _gpu_last_good_at, _gpu_last_good_value
 
     now = time.monotonic()
     if _gpu_cache_value is not None and now < _gpu_cache_expires_at:
@@ -925,7 +935,16 @@ def read_gpu_snapshot() -> dict[str, Any]:
     if snapshot is None:
         snapshot = _read_gpu_snapshot_nvidia_smi()
     if snapshot is None:
-        snapshot = _fallback_gpu_snapshot()
+        if _gpu_last_good_value is not None and now - _gpu_last_good_at <= GPU_LAST_GOOD_MAX_AGE_SECONDS:
+            snapshot = dict(_gpu_last_good_value)
+            source = str(snapshot.get("source") or "gpu").removesuffix("+stale")
+            snapshot["source"] = source + "+stale"
+            snapshot["status"] = "stale"
+        else:
+            snapshot = _fallback_gpu_snapshot()
+    else:
+        _gpu_last_good_value = dict(snapshot)
+        _gpu_last_good_at = now
 
     ttl = (
         GPU_FAILURE_CACHE_TTL_SECONDS
@@ -1315,9 +1334,11 @@ def _mib_to_gb(value: float | None) -> float | None:
 
 
 def _reset_gpu_cache_for_tests() -> None:
-    global _gpu_cache_expires_at, _gpu_cache_value
+    global _gpu_cache_expires_at, _gpu_cache_value, _gpu_last_good_at, _gpu_last_good_value
     _gpu_cache_value = None
     _gpu_cache_expires_at = 0.0
+    _gpu_last_good_value = None
+    _gpu_last_good_at = 0.0
 
 
 def _load_status(usage_percent: float | None) -> str:

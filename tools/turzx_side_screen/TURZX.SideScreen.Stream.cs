@@ -44,6 +44,7 @@ namespace TURZX.SideScreen
             long diffSequence = 0;
             long previousFrameStartTicks = -1;
             int consecutiveSendFailures = 0;
+            int lastFullFrame = 0;
 
             Console.WriteLine("TURZX stream starting: frames=" + (options.FrameCount == 0 ? "infinite" : options.FrameCount.ToString()) +
                 ", intervalMs=" + options.IntervalMs +
@@ -104,12 +105,19 @@ namespace TURZX.SideScreen
                                 sendAttempted = true;
                                 Stopwatch sendWatch = Stopwatch.StartNew();
                                 byte[] currentFrameData = diffSession.Convert(bitmap);
-                                if (previousFrameData == null)
+                                if (ShouldSendFullFrame(frame, previousFrameData != null, options.FullResyncEveryFrames))
                                 {
+                                    if (previousFrameData != null)
+                                    {
+                                        diffSession.Dispose();
+                                        diffSession = new TurzxHelperSender.DiffSession(options.Root, options.Port, options.DevCode);
+                                    }
                                     diffSession.SendFull(currentFrameData);
                                     sendWatch.Stop();
                                     sent++;
                                     consecutiveSendFailures = 0;
+                                    diffSequence = 0;
+                                    lastFullFrame = frame;
                                     Console.WriteLine("frame " + frame + " FULL sent in " + sendWatch.ElapsedMilliseconds + "ms: frameBytes=" + currentFrameData.Length);
                                 }
                                 else
@@ -141,7 +149,7 @@ namespace TURZX.SideScreen
                                     if (ShouldAbortAfterConsecutiveSendFailures(consecutiveSendFailures, options.MaxConsecutiveSendFailures))
                                     {
                                         frameWatch.Stop();
-                                        WriteHeartbeat(options, frame, sent, failed, consecutiveSendFailures, periodMs, fetchMs, renderMs, frameWatch.ElapsedMilliseconds, 0, snapshotStatus, "fatal", message);
+                                        WriteHeartbeat(options, frame, sent, failed, consecutiveSendFailures, lastFullFrame, periodMs, fetchMs, renderMs, frameWatch.ElapsedMilliseconds, 0, snapshotStatus, "fatal", message);
                                         Console.Error.WriteLine("stream fatal: consecutive send failures reached " + consecutiveSendFailures + "; exiting so watchdog can reopen " + options.Port);
                                         return 1;
                                     }
@@ -168,7 +176,7 @@ namespace TURZX.SideScreen
                             if (ShouldAbortAfterConsecutiveSendFailures(consecutiveSendFailures, options.MaxConsecutiveSendFailures))
                             {
                                 frameWatch.Stop();
-                                WriteHeartbeat(options, frame, sent, failed, consecutiveSendFailures, periodMs, fetchMs, renderMs, frameWatch.ElapsedMilliseconds, 0, snapshotStatus, "fatal", frameError);
+                                WriteHeartbeat(options, frame, sent, failed, consecutiveSendFailures, lastFullFrame, periodMs, fetchMs, renderMs, frameWatch.ElapsedMilliseconds, 0, snapshotStatus, "fatal", frameError);
                                 Console.Error.WriteLine("stream fatal: consecutive send failures reached " + consecutiveSendFailures + "; exiting so watchdog can reopen " + options.Port);
                                 return 1;
                             }
@@ -177,7 +185,7 @@ namespace TURZX.SideScreen
 
                     frameWatch.Stop();
                     int sleepMs = ComputeSleepMilliseconds(frameStartTicks, options.IntervalMs, Stopwatch.GetTimestamp(), Stopwatch.Frequency);
-                    WriteHeartbeat(options, frame, sent, failed, consecutiveSendFailures, periodMs, fetchMs, renderMs, frameWatch.ElapsedMilliseconds, sleepMs, snapshotStatus, frameStatus, frameError);
+                    WriteHeartbeat(options, frame, sent, failed, consecutiveSendFailures, lastFullFrame, periodMs, fetchMs, renderMs, frameWatch.ElapsedMilliseconds, sleepMs, snapshotStatus, frameStatus, frameError);
                     Console.WriteLine("frame " + frame + " timing: periodMs=" + periodMs + ", fetchMs=" + fetchMs + ", renderMs=" + renderMs + ", elapsedMs=" + frameWatch.ElapsedMilliseconds + ", sleepMs=" + sleepMs + ", data=" + snapshotStatus);
                     if (sleepMs > 0 && (options.FrameCount == 0 || frame < options.FrameCount))
                     {
@@ -225,6 +233,11 @@ namespace TURZX.SideScreen
         internal static bool ShouldAbortAfterConsecutiveSendFailuresForTest(int consecutiveFailures, int maxConsecutiveFailures)
         {
             return ShouldAbortAfterConsecutiveSendFailures(consecutiveFailures, maxConsecutiveFailures);
+        }
+
+        internal static bool ShouldSendFullFrameForTest(int frame, bool hasPreviousFrame, int fullResyncEveryFrames)
+        {
+            return ShouldSendFullFrame(frame, hasPreviousFrame, fullResyncEveryFrames);
         }
 
         internal static string DescribeExceptionForTest(Exception error)
@@ -317,6 +330,11 @@ namespace TURZX.SideScreen
             return maxConsecutiveFailures > 0 && consecutiveFailures >= maxConsecutiveFailures;
         }
 
+        private static bool ShouldSendFullFrame(int frame, bool hasPreviousFrame, int fullResyncEveryFrames)
+        {
+            return !hasPreviousFrame || (fullResyncEveryFrames > 0 && frame > 1 && frame % fullResyncEveryFrames == 0);
+        }
+
         private static bool IsLikelyDeviceSendFailure(Exception error)
         {
             Exception current = error;
@@ -369,6 +387,7 @@ namespace TURZX.SideScreen
             int sent,
             int failed,
             int consecutiveSendFailures,
+            int lastFullFrame,
             long periodMs,
             long fetchMs,
             long renderMs,
@@ -398,6 +417,7 @@ namespace TURZX.SideScreen
                 AppendJsonProperty(json, "sent", sent, true);
                 AppendJsonProperty(json, "failed", failed, true);
                 AppendJsonProperty(json, "consecutive_send_failures", consecutiveSendFailures, true);
+                AppendJsonProperty(json, "last_full_frame", lastFullFrame, true);
                 AppendJsonProperty(json, "period_ms", periodMs, true);
                 AppendJsonProperty(json, "fetch_ms", fetchMs, true);
                 AppendJsonProperty(json, "render_ms", renderMs, true);
@@ -654,7 +674,7 @@ namespace TURZX.SideScreen
 
         private static void PrintUsage()
         {
-            Console.WriteLine("TURZX.SideScreen.Stream.exe [--sample] [--dry-run] [--diff] [--alt-helper] [--frames N] [--interval-ms 1000] [--max-consecutive-send-failures 5] [--metrics-url URL] [--root TURZX_ROOT] [--port COM7]");
+            Console.WriteLine("TURZX.SideScreen.Stream.exe [--sample] [--dry-run] [--diff] [--alt-helper] [--frames N] [--interval-ms 1000] [--full-resync-every-frames 300] [--max-consecutive-send-failures 5] [--metrics-url URL] [--root TURZX_ROOT] [--port COM7]");
             Console.WriteLine("frames=0 means infinite. --diff sends one full baseline frame, then command-204 differential frames.");
         }
 
@@ -670,6 +690,7 @@ namespace TURZX.SideScreen
             public int HttpTimeoutMs = DefaultHttpTimeoutMs;
             public int SendTimeoutMs = 240000;
             public int MaxConsecutiveSendFailures = 5;
+            public int FullResyncEveryFrames = 300;
             public string MetricsUrl = DefaultMetricsUrl;
             public string Root = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", ".."));
             public string Port = "COM7";
@@ -692,6 +713,7 @@ namespace TURZX.SideScreen
                     else if (arg == "--timeout-ms") options.HttpTimeoutMs = int.Parse(Next(args, ref i, arg));
                     else if (arg == "--send-timeout-ms") options.SendTimeoutMs = int.Parse(Next(args, ref i, arg));
                     else if (arg == "--max-consecutive-send-failures") options.MaxConsecutiveSendFailures = int.Parse(Next(args, ref i, arg));
+                    else if (arg == "--full-resync-every-frames") options.FullResyncEveryFrames = int.Parse(Next(args, ref i, arg));
                     else if (arg == "--metrics-url") options.MetricsUrl = Next(args, ref i, arg);
                     else if (arg == "--root") options.Root = Next(args, ref i, arg);
                     else if (arg == "--port") options.Port = Next(args, ref i, arg);
@@ -703,6 +725,7 @@ namespace TURZX.SideScreen
                 if (options.FrameCount < 0) throw new ArgumentOutOfRangeException("frames");
                 if (options.IntervalMs < 0) throw new ArgumentOutOfRangeException("interval-ms");
                 if (options.MaxConsecutiveSendFailures < 0) throw new ArgumentOutOfRangeException("max-consecutive-send-failures");
+                if (options.FullResyncEveryFrames < 0) throw new ArgumentOutOfRangeException("full-resync-every-frames");
                 return options;
             }
 

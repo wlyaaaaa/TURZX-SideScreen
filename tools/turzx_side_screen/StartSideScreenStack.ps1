@@ -2,6 +2,7 @@ param(
     [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path,
     [string]$Port = "COM7",
     [int]$IntervalMs = 1000,
+    [int]$FullResyncEveryFrames = 300,
     [switch]$Worker
 )
 
@@ -51,6 +52,7 @@ if (-not $Worker) {
             "-Root", $Root,
             "-Port", $Port,
             "-IntervalMs", [string]$IntervalMs
+            "-FullResyncEveryFrames", [string]$FullResyncEveryFrames
         ) `
         -WorkingDirectory $scriptDir `
         -WindowStyle Hidden | Out-Null
@@ -120,4 +122,4 @@ Write-StackLog "top processes helper launched"
 Start-Sleep -Milliseconds 900
 
 $streamScript = Join-Path $scriptDir "StartVideoStream.ps1"
-& $streamScript -Root $Root -Port $Port -IntervalMs $IntervalMs -Frames 0 -Diff
+& $streamScript -Root $Root -Port $Port -IntervalMs $IntervalMs -Frames 0 -FullResyncEveryFrames $FullResyncEveryFrames -Diff

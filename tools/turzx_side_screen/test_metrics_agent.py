@@ -819,6 +819,56 @@ class MetricsAgentTests(unittest.TestCase):
         self.assertIsNone(gpu["mem_clock_mhz"])
         self.assertEqual("fallback", gpu["source"])
 
+    def test_gpu_snapshot_reuses_recent_good_sample_when_probe_temporarily_fails(self):
+        live = metrics_agent._gpu_snapshot(
+            source="nvidia-smi",
+            name="NVIDIA GeForce RTX 5090 D",
+            usage_percent=24,
+            temperature_c=57,
+            power_watts=120,
+            core_clock_mhz=2947,
+            memory_clock_mhz=16601,
+            vram_used_gb=4.0,
+            vram_total_gb=32.0,
+        )
+        with (
+            patch.object(metrics_agent, "_read_gpu_snapshot_nvml", side_effect=[live, None]),
+            patch.object(metrics_agent, "_read_gpu_snapshot_nvidia_smi", return_value=None),
+            patch.object(metrics_agent.time, "monotonic", side_effect=[100.0, 102.0]),
+        ):
+            first = metrics_agent.read_gpu_snapshot()
+            stale = metrics_agent.read_gpu_snapshot()
+
+        self.assertEqual("nvidia-smi", first["source"])
+        self.assertEqual(24.0, stale["usage_percent"])
+        self.assertEqual(57.0, stale["temperature_celsius"])
+        self.assertEqual("nvidia-smi+stale", stale["source"])
+        self.assertEqual("stale", stale["status"])
+
+    def test_gpu_snapshot_stops_reusing_sample_after_stale_safety_window(self):
+        live = metrics_agent._gpu_snapshot(
+            source="nvidia-smi",
+            name="NVIDIA GeForce RTX 5090 D",
+            usage_percent=24,
+            temperature_c=57,
+            power_watts=120,
+            core_clock_mhz=2947,
+            memory_clock_mhz=16601,
+            vram_used_gb=4.0,
+            vram_total_gb=32.0,
+        )
+        expired_at = 100.0 + metrics_agent.GPU_LAST_GOOD_MAX_AGE_SECONDS + 1.0
+        with (
+            patch.object(metrics_agent, "_read_gpu_snapshot_nvml", side_effect=[live, None]),
+            patch.object(metrics_agent, "_read_gpu_snapshot_nvidia_smi", return_value=None),
+            patch.object(metrics_agent.time, "monotonic", side_effect=[100.0, expired_at]),
+        ):
+            metrics_agent.read_gpu_snapshot()
+            expired = metrics_agent.read_gpu_snapshot()
+
+        self.assertEqual("fallback", expired["source"])
+        self.assertIsNone(expired["usage_percent"])
+
     def test_parse_nvidia_smi_csv_returns_gpu_metrics(self):
         gpu = metrics_agent._parse_nvidia_smi_csv(
             "NVIDIA GeForce RTX 5090 D, 24, 57, 2947, 16601\n"

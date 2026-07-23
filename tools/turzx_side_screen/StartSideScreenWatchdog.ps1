@@ -8,6 +8,7 @@ param(
     [int]$PollSeconds = 2,
     [int]$HeartbeatStaleSeconds = 15,
     [int]$HeartbeatStartupGraceSeconds = 30,
+    [int]$ShutdownStartupGraceSeconds = 180,
     [int]$MaxConsecutiveHeartbeatFailures = 3,
     [int]$MaxConsecutiveFailures = 3,
     [switch]$NoPowerEvents
@@ -30,10 +31,13 @@ $restartFlag = Join-Path $outDir "restart-on-start.flag"
 $stackScript = Join-Path $scriptDir "StartSideScreenStack.ps1"
 $stopScript = Join-Path $scriptDir "StopSideScreenStack.ps1"
 $blankScript = Join-Path $scriptDir "SendBlankFrame.ps1"
+$shutdownPolicy = Join-Path $scriptDir "SideScreenWatchdogPolicy.ps1"
 $powerSourceId = "TURZXSideScreenPower"
 $shutdownSourceId = "TURZXSideScreenShutdown"
+$watchdogStartedUtc = [DateTime]::UtcNow
 
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+. $shutdownPolicy
 
 function Write-WatchdogLog {
     param([string]$Message)
@@ -211,10 +215,20 @@ try {
                     }
                 }
                 elseif ($event.SourceIdentifier -eq $shutdownSourceId) {
-                    Write-WatchdogLog "computer shutdown/restart event detected"
-                    Send-Blank -Reason "shutdown" -TimeoutMs $QuickBlankTimeoutMs
-                    Stop-Stack -Reason "shutdown"
-                    break
+                    $typeProperty = $event.SourceEventArgs.NewEvent.PSObject.Properties["Type"]
+                    $shutdownEventType = if ($null -ne $typeProperty) { $typeProperty.Value } else { $null }
+                    $shutdownDecision = Get-TurzxShutdownEventDecision `
+                        -EventType $shutdownEventType `
+                        -WatchdogStartedUtc $watchdogStartedUtc `
+                        -NowUtc ([DateTime]::UtcNow) `
+                        -StartupGraceSeconds $ShutdownStartupGraceSeconds
+                    Write-WatchdogLog ("computer shutdown event type={0} action={1} reason={2} watchdogAgeSeconds={3:N1}" -f `
+                        $shutdownDecision.Type, $shutdownDecision.Action, $shutdownDecision.Reason, $shutdownDecision.AgeSeconds)
+                    if ($shutdownDecision.Action -eq "Shutdown") {
+                        Send-Blank -Reason "shutdown" -TimeoutMs $QuickBlankTimeoutMs
+                        Stop-Stack -Reason "shutdown"
+                        break
+                    }
                 }
                 else {
                     Write-WatchdogLog ("ignored event source={0}" -f $event.SourceIdentifier)
@@ -284,7 +298,6 @@ finally {
             Remove-Event -ErrorAction SilentlyContinue
     }
     Stop-Stack -Reason "watchdog-exit"
-    Send-Blank -Reason "watchdog-exit" -TimeoutMs $QuickBlankTimeoutMs
     try {
         if ((Get-Content -Raw -LiteralPath $watchdogPidPath -ErrorAction Stop).Trim() -eq [string]$PID) {
             Remove-Item -LiteralPath $watchdogPidPath -Force -ErrorAction SilentlyContinue

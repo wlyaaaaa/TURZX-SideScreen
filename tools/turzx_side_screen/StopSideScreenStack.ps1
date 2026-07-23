@@ -30,7 +30,7 @@ function Stop-MatchingProcess {
         [string]$Reason
     )
 
-    Get-CimInstance Win32_Process |
+    $processSnapshot |
         Where-Object {
             $_.ProcessId -ne $PID -and (& $Predicate $_)
         } |
@@ -42,6 +42,7 @@ function Stop-MatchingProcess {
 
 $sidePattern = "*" + $side + "*"
 $weatherPattern = "*" + $weather + "*"
+$processSnapshot = @(Get-CimInstance Win32_Process)
 
 Stop-MatchingProcess -Reason "metrics-agent" -Predicate {
     param($p)
@@ -63,7 +64,7 @@ Stop-MatchingProcess -Reason "stream-exe" -Predicate {
     $p.Name -like "TURZX.SideScreen.Stream*" -and $p.CommandLine -like $sidePattern
 }
 
-$streamParents = @(Get-CimInstance Win32_Process |
+$streamParents = @($processSnapshot |
     Where-Object { $_.Name -like "TURZX.SideScreen.Stream*" } |
     Select-Object -ExpandProperty ParentProcessId -Unique |
     Where-Object { $_ -and $_ -ne $PID })

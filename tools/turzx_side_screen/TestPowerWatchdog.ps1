@@ -7,6 +7,7 @@ $ErrorActionPreference = "Stop"
 
 $side = Join-Path $Root "tools\turzx_side_screen"
 $watchdog = Join-Path $side "StartSideScreenWatchdog.ps1"
+$shutdownPolicy = Join-Path $side "SideScreenWatchdogPolicy.ps1"
 $watchdogLauncher = Join-Path $side "StartSideScreenWatchdog-Hidden.vbs"
 $stack = Join-Path $side "StartSideScreenStack.ps1"
 $stop = Join-Path $side "StopSideScreenStack.ps1"
@@ -17,7 +18,7 @@ $installer = Join-Path $Root "scripts\install-startup-admin.ps1"
 $installerCmd = Join-Path $Root "scripts\install-startup-admin.cmd"
 $start = Join-Path $Root "scripts\start.ps1"
 
-foreach ($path in @($watchdog, $watchdogLauncher, $stop, $blank)) {
+foreach ($path in @($watchdog, $shutdownPolicy, $watchdogLauncher, $stop, $blank)) {
     if (!(Test-Path -LiteralPath $path)) {
         throw "Missing power management script: $path"
     }
@@ -46,6 +47,8 @@ foreach ($pattern in @(
     "heartbeat unhealthy",
     "restart-on-start.flag",
     "restart request detected"
+    "Get-TurzxShutdownEventDecision"
+    "ShutdownStartupGraceSeconds"
 )) {
     if ($watchdogText -notmatch [regex]::Escape($pattern)) {
         throw "Watchdog missing expected pattern: $pattern"
@@ -53,11 +56,55 @@ foreach ($pattern in @(
 }
 
 foreach ($pattern in @(
-    'Send-Blank -Reason "shutdown"',
-    'Send-Blank -Reason "watchdog-exit"'
+    'Send-Blank -Reason "shutdown"'
 )) {
     if ($watchdogText -notmatch [regex]::Escape($pattern)) {
-        throw "Watchdog must blank the panel during shutdown and watchdog exit; missing: $pattern"
+        throw "Watchdog must blank the panel during confirmed shutdown; missing: $pattern"
+    }
+}
+
+if ($watchdogText -match [regex]::Escape('Send-Blank -Reason "watchdog-exit"')) {
+    throw "Unexpected watchdog exit must not black the panel before Task Scheduler can restart it."
+}
+
+. $shutdownPolicy
+$watchdogStartedUtc = [DateTime]::Parse("2026-07-23T02:00:00Z").ToUniversalTime()
+
+$logoffDecision = Get-TurzxShutdownEventDecision `
+    -EventType 0 `
+    -WatchdogStartedUtc $watchdogStartedUtc `
+    -NowUtc $watchdogStartedUtc.AddMinutes(10) `
+    -StartupGraceSeconds 180
+if ($logoffDecision.Action -ne "Ignore" -or $logoffDecision.Reason -ne "logoff") {
+    throw "A logoff event must not black the panel or terminate the watchdog."
+}
+
+$startupShutdownDecision = Get-TurzxShutdownEventDecision `
+    -EventType 1 `
+    -WatchdogStartedUtc $watchdogStartedUtc `
+    -NowUtc $watchdogStartedUtc.AddSeconds(47) `
+    -StartupGraceSeconds 180
+if ($startupShutdownDecision.Action -ne "Ignore" -or $startupShutdownDecision.Reason -ne "startup-grace") {
+    throw "A shutdown-class event during startup grace must be ignored."
+}
+
+$confirmedShutdownDecision = Get-TurzxShutdownEventDecision `
+    -EventType 1 `
+    -WatchdogStartedUtc $watchdogStartedUtc `
+    -NowUtc $watchdogStartedUtc.AddMinutes(5) `
+    -StartupGraceSeconds 180
+if ($confirmedShutdownDecision.Action -ne "Shutdown" -or $confirmedShutdownDecision.Reason -ne "confirmed") {
+    throw "A type=1 event after startup grace must remain a confirmed shutdown/restart signal."
+}
+
+foreach ($invalidType in @($null, "invalid", 7)) {
+    $decision = Get-TurzxShutdownEventDecision `
+        -EventType $invalidType `
+        -WatchdogStartedUtc $watchdogStartedUtc `
+        -NowUtc $watchdogStartedUtc.AddMinutes(5) `
+        -StartupGraceSeconds 180
+    if ($decision.Action -ne "Ignore") {
+        throw "Unknown or unsupported shutdown event types must fail safe by keeping the watchdog alive."
     }
 }
 
@@ -90,7 +137,7 @@ Assert-OrderAfter `
 
 Assert-OrderAfter `
     -Text $watchdogText `
-    -Anchor 'computer shutdown/restart event detected' `
+    -Anchor 'if ($shutdownDecision.Action -eq "Shutdown")' `
     -First 'Send-Blank -Reason "shutdown"' `
     -Second 'Stop-Stack -Reason "shutdown"' `
     -Message "Shutdown/sleep fallback handling must send the blank frame before stopping the stack."
@@ -189,6 +236,11 @@ foreach ($pattern in @("Wait-MetricsEndpointReady", "metrics endpoint did not be
 $stopText = Get-Content -Raw -LiteralPath $stop
 if ($stopText -notmatch [regex]::Escape("SkipStackEntrypoint")) {
     throw "Stop script must support SkipStackEntrypoint for elevated self-cleanup."
+}
+
+$processSnapshotCount = [regex]::Matches($stopText, [regex]::Escape("Get-CimInstance Win32_Process")).Count
+if ($processSnapshotCount -ne 1 -or $stopText -notmatch [regex]::Escape('$processSnapshot')) {
+    throw "Stop script must take one Win32_Process snapshot so watchdog recovery is not delayed by repeated WMI scans."
 }
 
 foreach ($pattern in @("restart-on-start.flag", "StopSideScreenStack.ps1", "SkipStackEntrypoint")) {
